@@ -13,7 +13,7 @@ using System.Text;
 
 namespace JwtAuth.Services
 {
-    public class AuthService(UserDbContext context, IConfiguration configuration) : IAuthService
+    public class AuthService(AppDbContext context, IConfiguration configuration) : IAuthService
     {
         public async Task<TokenResponseDto?> LoginAsync(UserDto request)
         {
