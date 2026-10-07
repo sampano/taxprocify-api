@@ -7,5 +7,8 @@ namespace JwtAuth.Data
     {
         // create users table represent user class
         public DbSet<User> Users { get; set; }
+
+        // create clients table represent client class
+        public DbSet<Client> Clients { get; set; }
     }
 }
