@@ -1,8 +1,10 @@
-﻿using JwtAuth.Dtos.Clients;
+﻿using JwtAuth.Dtos;
+using JwtAuth.Dtos.Clients;
 using JwtAuth.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace JwtAuth.Controllers
 {
@@ -18,22 +20,37 @@ namespace JwtAuth.Controllers
             _clientService = clientService;
         }
     
-
-
-    [HttpGet]
-        public async Task<ActionResult<List<ClientDto>>> GetClients()
+        private Guid GetCurrentUserId()
         {
-            List<ClientDto> clients = 
-                await _clientService.GetClientsAsync();
+            string? userId = 
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
+            
+            return Guid.Parse(userId!);
+        }
+
+        [HttpGet]   
+
+        public async Task<ActionResult<List<ClientDto>>> GetClients(string? search, int page = 1, int pageSize = 10)
+        {
+            Guid userId = GetCurrentUserId();
+
+            PageResultDto<ClientDto> clients = 
+                await _clientService.GetClientsAsync(
+                    userId, 
+                    search, 
+                    page, 
+                    pageSize);
 
             return Ok(clients);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("/getclient/{id}")]
         public async Task<ActionResult<ClientDto>> GetClient(int id)
         {
+            Guid userId = GetCurrentUserId();
+
             ClientDto? client = 
-                await _clientService.GetClientByIdAsync(id);
+                await _clientService.GetClientByIdAsync(id, userId);
 
             if (client == null)
             {
@@ -43,42 +60,70 @@ namespace JwtAuth.Controllers
             return Ok(client);
         }
 
-        [HttpPost]
+        [HttpPost("/createclient")]
         // Create a new client
         public async Task<ActionResult<ClientDto>> CreateClient(CreateClientDto request)
         {
-            
-            ClientDto client = 
-                await _clientService.CreateClientAsync(request);
 
-            // Return a 201 Created response with the location of the newly created client
-            return CreatedAtAction(
-                nameof(GetClient), 
-                new { id = client.Id }, 
-                client);
+            Guid userId = GetCurrentUserId();
+
+            try
+            {
+                ClientDto client = await _clientService.CreateClientAsync(request, userId);
+
+
+                // Return a 201 Created response with the location of the newly created client
+                return CreatedAtAction(
+                    nameof(GetClient),
+                    new { id = client.Id },
+                    client);
+            }
+
+            catch(InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+
+            }
+            
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("/updateclient/{id}")]
         // Update an existing client
         public async Task<ActionResult<ClientDto>> UpdateClient(int id, UpdateClientDto request)
         {
-            ClientDto? client = 
-                await _clientService.UpdateClientAsync(id, request);
-
-            if (client == null)
+            Guid userId = GetCurrentUserId();
+            try
             {
-                return NotFound();
-            }
+                ClientDto? client =
+               await _clientService.UpdateClientAsync(id, request, userId);
 
-            return Ok(client);
+                if (client == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(client);
+            }
+            catch(InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("/deleteclient/{id}")]
         // Delete a client
         public async Task<ActionResult<bool>> DeleteClient(int id)
         {
+            Guid userId = GetCurrentUserId();
+
             bool deleted = 
-                await _clientService.DeleteClientAsync(id);
+                await _clientService.DeleteClientAsync(id, userId);
 
             if (!deleted)
             {
@@ -87,6 +132,7 @@ namespace JwtAuth.Controllers
 
             return NoContent();
         }
+
 
     }
 }

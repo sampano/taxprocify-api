@@ -14,5 +14,10 @@
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        // Foreign key to the User entity, store which user owns client
+        public Guid UserId { get; set; }
+
+        public User User { get; set; } = null!;
+
     }
 }

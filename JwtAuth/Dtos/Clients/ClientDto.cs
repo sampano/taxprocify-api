@@ -1,4 +1,6 @@
-﻿namespace JwtAuth.Dtos.Clients
+﻿using JwtAuth.Entities;
+
+namespace JwtAuth.Dtos.Clients
 {
     public class ClientDto
     {
@@ -13,6 +15,8 @@
         public string? Phone { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public Guid UserId { get; set; }
 
     }
 }

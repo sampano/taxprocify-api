@@ -13,5 +13,8 @@
         public string? RefreshToken { get; set; }
 
         public DateTime? RefreshTokenExpiryTime { get; set; }
+
+        // Navigation property for the related clients
+        public List<Client> Clients { get; set; } = [];
     }
 }
