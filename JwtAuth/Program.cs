@@ -38,6 +38,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddScoped<IClientService, ClientService>();
 
+builder.Services.AddScoped<ITaxCaseService, TaxCaseService>();
+
 var app = builder.Build();
 
 

@@ -19,5 +19,6 @@
 
         public User User { get; set; } = null!;
 
+        public List<TaxCase> TaxCases { get; set; } = [];
     }
 }

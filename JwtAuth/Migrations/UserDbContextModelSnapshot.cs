@@ -58,6 +58,34 @@ namespace JwtAuth.Migrations
                     b.ToTable("Clients");
                 });
 
+            modelBuilder.Entity("JwtAuth.Entities.TaxCase", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClientId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TaxYear")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.ToTable("TaxCases");
+                });
+
             modelBuilder.Entity("JwtAuth.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -96,6 +124,22 @@ namespace JwtAuth.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("JwtAuth.Entities.TaxCase", b =>
+                {
+                    b.HasOne("JwtAuth.Entities.Client", "Client")
+                        .WithMany("TaxCases")
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Client");
+                });
+
+            modelBuilder.Entity("JwtAuth.Entities.Client", b =>
+                {
+                    b.Navigation("TaxCases");
                 });
 
             modelBuilder.Entity("JwtAuth.Entities.User", b =>
