@@ -29,7 +29,7 @@ namespace JwtAuth.Controllers
             return Guid.Parse(userId!);
         }
         
-        [HttpPost("upload-tax-case/{taxCaseId}")]
+        [HttpPost("upload/tax-document/{taxCaseId}")]
         public async Task<ActionResult<DocumentDto>> UploadDocument(
             int taxCaseId,
             [FromForm] UploadDocumentDto request)
@@ -42,6 +42,7 @@ namespace JwtAuth.Controllers
                     await _documentService.UploadDocumentAsync(
                         taxCaseId,
                         request.File,
+                        request.DocumentTypeId,
                         userId);
 
                 if (document is null)
@@ -61,7 +62,7 @@ namespace JwtAuth.Controllers
 
         }
 
-        [HttpGet("search-tax-case/{taxCaseId}")]
+        [HttpGet("search/tax-document/{taxCaseId}")]
         public async Task<ActionResult<List<DocumentDto>>> GetDocuments(int taxCaseId)
         {
             Guid userId = GetCurrentUserId();
@@ -72,7 +73,7 @@ namespace JwtAuth.Controllers
             return Ok(document);
         }
 
-        [HttpGet("{documentId}/download")]
+        [HttpGet("tax-document/{documentId}/download")]
         public async Task <IActionResult> DownloadDocument(int documentId)
         {
             Guid userId = GetCurrentUserId();
@@ -90,7 +91,7 @@ namespace JwtAuth.Controllers
                 document.FileName);
         }
 
-        [HttpDelete("{documentId}")]
+        [HttpDelete("delete/tax-document/{documentId}")]
         public async Task<IActionResult> DeleteDocument(int documentId)
         {
             Guid userId = GetCurrentUserId();
@@ -105,6 +106,15 @@ namespace JwtAuth.Controllers
             }
 
             return NoContent();
+        }
+
+        [HttpGet("tax-document/categories")]
+        public async Task<ActionResult<List<DocumentCategoryDto>>> GetDocumentCategories()
+        {
+            List<DocumentCategoryDto> categories =
+                await _documentService.GetDocumentCategoriesAsync();
+
+            return Ok(categories);
         }
     }
 

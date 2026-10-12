@@ -24,5 +24,10 @@
 
         public User UploadedByUser { get; set; } = null!;
 
+        // Type of tax document
+        public int? DocumentTypeId { get; set; }
+
+        public DocumentType? DocumentType { get; set; }
+
     }
 }

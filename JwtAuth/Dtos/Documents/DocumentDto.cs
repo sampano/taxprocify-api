@@ -14,5 +14,12 @@
         public DateTime UploadedAt { get; set; }
 
         public int TaxCaseId { get; set; }
+
+       
+        public int? DocumentTypeId { get; set; }
+
+        public string? DocumentType { get; set; }
+
+        public string? DocumentCategory { get; set; }
     }
 }

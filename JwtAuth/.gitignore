@@ -1,10 +1,10 @@
 .vs/
 **/.vs/
 
+Uploads/
 **/Uploads/
 
-**/bin/
-**/obj/
-
+bin/
+obj/
 *.user
 *.suo

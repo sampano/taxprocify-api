@@ -20,7 +20,7 @@ namespace JwtAuth.Services
         }
         
         
-        public async Task<DocumentDto?> UploadDocumentAsync(int taxCaseId, IFormFile file, Guid userId)
+        public async Task<DocumentDto?> UploadDocumentAsync(int taxCaseId, IFormFile file, int documentTypeId, Guid userId)
             {
                 TaxCase? taxCase = await _context.TaxCases
                 .FirstOrDefaultAsync(taxCase =>
@@ -31,7 +31,17 @@ namespace JwtAuth.Services
                 {
                     return null;
                 }
-                
+
+                // Check if the document type exists
+                bool documentTypeExists =
+                    await _context.DocumentTypes.AnyAsync(
+                        documentType => documentType.Id == documentTypeId);
+
+                if (!documentTypeExists)
+                {
+                    throw new InvalidOperationException("The selected document type does not exist.");
+                }
+
                 if (file.Length == 0)
                 {
                     throw new InvalidOperationException("The uploaded file is empty");
@@ -83,23 +93,32 @@ namespace JwtAuth.Services
                     FileSize = file.Length,
                     UploadedAt = DateTime.UtcNow,
                     TaxCaseId = taxCaseId,
-                    UploadedByUserId = userId
+                    UploadedByUserId = userId,
+                    DocumentTypeId = documentTypeId
                 }
                 ;
 
                 _context.Documents.Add(document);
 
                 await _context.SaveChangesAsync();
-
-                return new DocumentDto
+            
+                DocumentType? documentType = await _context.DocumentTypes
+                    .Include(documentType => documentType.DocumentCategory)
+                    .FirstOrDefaultAsync(documentType =>
+                documentType.Id == documentTypeId);
+            
+            return new DocumentDto
                 {
                     Id = document.Id,
                     FileName = document.FileName,
                     ContentType = document.ContentType,
                     FileSize = document.FileSize,
                     UploadedAt = DateTime.UtcNow,
-                    TaxCaseId = taxCaseId
-                };
+                    TaxCaseId = taxCaseId,
+                    DocumentTypeId = document.DocumentTypeId,
+                    DocumentType = documentType?.Name,
+                    DocumentCategory = documentType?.DocumentCategory.Name
+            };
             
         }
         
@@ -117,7 +136,14 @@ namespace JwtAuth.Services
                     ContentType = document.ContentType,
                     FileSize = document.FileSize,
                     UploadedAt= document.UploadedAt,
-                    TaxCaseId = document.TaxCaseId
+                    TaxCaseId = document.TaxCaseId,
+                    DocumentTypeId = document.DocumentTypeId,
+                    DocumentType = document.DocumentType != null
+                        ? document.DocumentType.Name
+                        : null,
+                    DocumentCategory = document.DocumentType != null
+                        ? document.DocumentType.DocumentCategory.Name
+                        : null
                 })
                 .ToListAsync();
         }
@@ -186,6 +212,25 @@ namespace JwtAuth.Services
 
             return true;
                 
+        }
+
+        public async Task<List<DocumentCategoryDto>> GetDocumentCategoriesAsync()
+        {
+            return await _context.DocumentCategories
+                .OrderBy(category => category.Name)
+                .Select(category => new DocumentCategoryDto
+                {
+                    Id = category.Id,
+                    Name = category.Name,
+                    DocumentTypes = category.DocumentTypes
+                        .OrderBy(documentType => documentType.Name)
+                        .Select(documentType => new DocumentTypeDto
+                        {
+                            Id = documentType.Id,
+                            Name = documentType.Name
+                        })
+                .ToList()
+                }).ToListAsync();
         }
     }
 }

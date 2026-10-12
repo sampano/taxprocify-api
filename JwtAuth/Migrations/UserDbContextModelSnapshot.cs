@@ -70,6 +70,9 @@ namespace JwtAuth.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("DocumentTypeId")
+                        .HasColumnType("int");
+
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -92,11 +95,158 @@ namespace JwtAuth.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DocumentTypeId");
+
                     b.HasIndex("TaxCaseId");
 
                     b.HasIndex("UploadedByUserId");
 
                     b.ToTable("Documents");
+                });
+
+            modelBuilder.Entity("JwtAuth.Entities.DocumentCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DocumentCategories");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Income"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Identity"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "Health Insurance"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "Prior Return"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "IRS Notice"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Name = "Other"
+                        });
+                });
+
+            modelBuilder.Entity("JwtAuth.Entities.DocumentType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DocumentCategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentCategoryId");
+
+                    b.ToTable("DocumentTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DocumentCategoryId = 1,
+                            Name = "W-2"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DocumentCategoryId = 1,
+                            Name = "1099-NEC"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            DocumentCategoryId = 1,
+                            Name = "1099-MISC"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            DocumentCategoryId = 1,
+                            Name = "1099-INT"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            DocumentCategoryId = 1,
+                            Name = "1099-DIV"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            DocumentCategoryId = 2,
+                            Name = "Driver's License"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            DocumentCategoryId = 2,
+                            Name = "Passport"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            DocumentCategoryId = 2,
+                            Name = "Social Security Card"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            DocumentCategoryId = 3,
+                            Name = "1095-A"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            DocumentCategoryId = 4,
+                            Name = "Previous Tax Return"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            DocumentCategoryId = 5,
+                            Name = "IRS Notice"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            DocumentCategoryId = 6,
+                            Name = "Other"
+                        });
                 });
 
             modelBuilder.Entity("JwtAuth.Entities.TaxCase", b =>
@@ -169,6 +319,10 @@ namespace JwtAuth.Migrations
 
             modelBuilder.Entity("JwtAuth.Entities.Document", b =>
                 {
+                    b.HasOne("JwtAuth.Entities.DocumentType", "DocumentType")
+                        .WithMany("Documents")
+                        .HasForeignKey("DocumentTypeId");
+
                     b.HasOne("JwtAuth.Entities.TaxCase", "TaxCase")
                         .WithMany("Documents")
                         .HasForeignKey("TaxCaseId")
@@ -181,9 +335,22 @@ namespace JwtAuth.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.Navigation("DocumentType");
+
                     b.Navigation("TaxCase");
 
                     b.Navigation("UploadedByUser");
+                });
+
+            modelBuilder.Entity("JwtAuth.Entities.DocumentType", b =>
+                {
+                    b.HasOne("JwtAuth.Entities.DocumentCategory", "DocumentCategory")
+                        .WithMany("DocumentTypes")
+                        .HasForeignKey("DocumentCategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentCategory");
                 });
 
             modelBuilder.Entity("JwtAuth.Entities.TaxCase", b =>
@@ -200,6 +367,16 @@ namespace JwtAuth.Migrations
             modelBuilder.Entity("JwtAuth.Entities.Client", b =>
                 {
                     b.Navigation("TaxCases");
+                });
+
+            modelBuilder.Entity("JwtAuth.Entities.DocumentCategory", b =>
+                {
+                    b.Navigation("DocumentTypes");
+                });
+
+            modelBuilder.Entity("JwtAuth.Entities.DocumentType", b =>
+                {
+                    b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("JwtAuth.Entities.TaxCase", b =>
