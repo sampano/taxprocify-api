@@ -1,4 +1,6 @@
-﻿namespace JwtAuth.Dtos.TaxCases
+﻿using JwtAuth.Enums;
+
+namespace JwtAuth.Dtos.TaxCases
 {
     public class TaxCaseDto
     {
@@ -6,7 +8,7 @@
         
         public int TaxYear { get; set; }
 
-        public string Status { get; set; } = string.Empty;
+        public TaxCaseStatus Status { get; set; }
 
         public DateTime CreatedAt { get; set; }
 

@@ -62,6 +62,7 @@ namespace JwtAuth.Services
             CreateTaxCaseDto request,
             Guid userId)
         {
+
             Client? client = await _context.Clients
                 .FirstOrDefaultAsync(client =>
                     client.Id == clientId &&
@@ -72,6 +73,15 @@ namespace JwtAuth.Services
                 return null;
             }
 
+            bool taxCaseExists = await _context.TaxCases.AnyAsync(taxCase =>
+            taxCase.ClientId == clientId &&
+            taxCase.TaxYear == request.TaxYear);
+
+            if (taxCaseExists)
+            {
+                throw new InvalidOperationException(
+                    "A tax case for this tax year already exist.");
+            }
             TaxCase taxCase = new TaxCase
             {
                 TaxYear = request.TaxYear,
@@ -108,8 +118,19 @@ namespace JwtAuth.Services
                 return null;
             }
 
+            bool taxCaseExists = await _context.TaxCases.AnyAsync(existingTaxCase =>
+            existingTaxCase.ClientId == taxCase.ClientId &&
+            existingTaxCase.TaxYear == request.TaxYear &&
+            existingTaxCase.Id != id);
+
             taxCase.TaxYear = request.TaxYear;
             taxCase.Status = request.Status;
+
+            if (taxCaseExists)
+            {
+                throw new InvalidOperationException(
+                    "A tax case for this tax year already exists.");
+            }
 
             await _context.SaveChangesAsync();
 

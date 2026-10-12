@@ -13,5 +13,14 @@ namespace JwtAuth.Data
 
         // create taxcases table represent taxcase class
         public DbSet<TaxCase> TaxCases { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<TaxCase>()
+                .Property(taxCase => taxCase.Status)
+                .HasConversion<string>();
+        }
     }
 }

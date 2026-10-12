@@ -67,7 +67,7 @@ namespace JwtAuth.Controllers
             CreateTaxCaseDto request)
         {
             Guid userId = GetCurrentUserId();
-
+            try { 
             TaxCaseDto? taxCase = await _taxCaseService.CreateTaxCaseAsync(
                 clientId,
                 request,
@@ -83,6 +83,12 @@ namespace JwtAuth.Controllers
                 new { id = taxCase.Id }, 
                 taxCase);
 
+            }
+
+            catch(InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("updatetaxcases/{id}")]
@@ -92,6 +98,8 @@ namespace JwtAuth.Controllers
             UpdateTaxCaseDto request)
         {
             Guid userId = GetCurrentUserId();
+
+            try { 
 
             TaxCaseDto? taxCase = await _taxCaseService.UpdateTaxCaseAsync(
                 id,
@@ -104,6 +112,13 @@ namespace JwtAuth.Controllers
             }
 
             return Ok(taxCase);
+            }
+
+            catch(InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+         
         }
 
         [HttpDelete("deletetaxcases/{id}")]
