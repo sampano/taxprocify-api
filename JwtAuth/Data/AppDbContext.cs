@@ -21,6 +21,14 @@ namespace JwtAuth.Data
             modelBuilder.Entity<TaxCase>()
                 .Property(taxCase => taxCase.Status)
                 .HasConversion<string>();
+
+            modelBuilder.Entity<Document>()
+                .HasOne(document => document.UploadedByUser)
+                .WithMany(user => user.Documents)
+                .HasForeignKey(document => document.UploadedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
+
+        public DbSet<Document> Documents { get; set; }
     }
 }

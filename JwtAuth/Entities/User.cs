@@ -16,5 +16,7 @@
 
         // Navigation property for the related clients
         public List<Client> Clients { get; set; } = [];
+
+        public List<Document> Documents { get; set; } = [];
     }
 }

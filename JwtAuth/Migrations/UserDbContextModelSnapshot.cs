@@ -58,6 +58,47 @@ namespace JwtAuth.Migrations
                     b.ToTable("Clients");
                 });
 
+            modelBuilder.Entity("JwtAuth.Entities.Document", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StoredFileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TaxCaseId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TaxCaseId");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.ToTable("Documents");
+                });
+
             modelBuilder.Entity("JwtAuth.Entities.TaxCase", b =>
                 {
                     b.Property<int>("Id")
@@ -126,6 +167,25 @@ namespace JwtAuth.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("JwtAuth.Entities.Document", b =>
+                {
+                    b.HasOne("JwtAuth.Entities.TaxCase", "TaxCase")
+                        .WithMany("Documents")
+                        .HasForeignKey("TaxCaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JwtAuth.Entities.User", "UploadedByUser")
+                        .WithMany("Documents")
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("TaxCase");
+
+                    b.Navigation("UploadedByUser");
+                });
+
             modelBuilder.Entity("JwtAuth.Entities.TaxCase", b =>
                 {
                     b.HasOne("JwtAuth.Entities.Client", "Client")
@@ -142,9 +202,16 @@ namespace JwtAuth.Migrations
                     b.Navigation("TaxCases");
                 });
 
+            modelBuilder.Entity("JwtAuth.Entities.TaxCase", b =>
+                {
+                    b.Navigation("Documents");
+                });
+
             modelBuilder.Entity("JwtAuth.Entities.User", b =>
                 {
                     b.Navigation("Clients");
+
+                    b.Navigation("Documents");
                 });
 #pragma warning restore 612, 618
         }
