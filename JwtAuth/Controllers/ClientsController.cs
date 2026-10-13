@@ -44,7 +44,7 @@ namespace JwtAuth.Controllers
             return Ok(clients);
         }
 
-        [HttpGet("/getclient/{id}")]
+        [HttpGet("getclient/{id}")]
         public async Task<ActionResult<ClientDto>> GetClient(int id)
         {
             Guid userId = GetCurrentUserId();
@@ -60,7 +60,7 @@ namespace JwtAuth.Controllers
             return Ok(client);
         }
 
-        [HttpPost("/createclient")]
+        [HttpPost("createclient")]
         // Create a new client
         public async Task<ActionResult<ClientDto>> CreateClient(CreateClientDto request)
         {
@@ -90,7 +90,7 @@ namespace JwtAuth.Controllers
             
         }
 
-        [HttpPut("/updateclient/{id}")]
+        [HttpPut("updateclient/{id}")]
         // Update an existing client
         public async Task<ActionResult<ClientDto>> UpdateClient(int id, UpdateClientDto request)
         {
@@ -116,7 +116,7 @@ namespace JwtAuth.Controllers
             }
         }
 
-        [HttpDelete("/deleteclient/{id}")]
+        [HttpDelete("deleteclient/{id}")]
         // Delete a client
         public async Task<ActionResult<bool>> DeleteClient(int id)
         {

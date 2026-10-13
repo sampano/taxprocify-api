@@ -1,0 +1,10 @@
+.vs/
+**/.vs/
+
+**/Uploads/
+
+**/bin/
+**/obj/
+
+*.user
+*.suo
