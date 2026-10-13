@@ -48,6 +48,11 @@ builder.Services.AddScoped<ITaxCaseService, TaxCaseService>();
 
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 
+builder.Services.AddScoped<IDocumentRequestService, DocumentRequestService>();
+
+builder.Services.AddScoped<IDocumentRequestService, DocumentRequestService>();
+
+
 var app = builder.Build();
 
 

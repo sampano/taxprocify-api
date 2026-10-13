@@ -153,6 +153,38 @@ namespace JwtAuth.Migrations
                         });
                 });
 
+            modelBuilder.Entity("JwtAuth.Entities.DocumentRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DocumentTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TaxCaseId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentTypeId");
+
+                    b.HasIndex("TaxCaseId");
+
+                    b.ToTable("DocumentRequests");
+                });
+
             modelBuilder.Entity("JwtAuth.Entities.DocumentType", b =>
                 {
                     b.Property<int>("Id")
@@ -342,6 +374,25 @@ namespace JwtAuth.Migrations
                     b.Navigation("UploadedByUser");
                 });
 
+            modelBuilder.Entity("JwtAuth.Entities.DocumentRequest", b =>
+                {
+                    b.HasOne("JwtAuth.Entities.DocumentType", "DocumentType")
+                        .WithMany("DocumentRequests")
+                        .HasForeignKey("DocumentTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JwtAuth.Entities.TaxCase", "TaxCase")
+                        .WithMany("DocumentRequests")
+                        .HasForeignKey("TaxCaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentType");
+
+                    b.Navigation("TaxCase");
+                });
+
             modelBuilder.Entity("JwtAuth.Entities.DocumentType", b =>
                 {
                     b.HasOne("JwtAuth.Entities.DocumentCategory", "DocumentCategory")
@@ -376,11 +427,15 @@ namespace JwtAuth.Migrations
 
             modelBuilder.Entity("JwtAuth.Entities.DocumentType", b =>
                 {
+                    b.Navigation("DocumentRequests");
+
                     b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("JwtAuth.Entities.TaxCase", b =>
                 {
+                    b.Navigation("DocumentRequests");
+
                     b.Navigation("Documents");
                 });
 

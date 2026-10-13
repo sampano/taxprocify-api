@@ -29,7 +29,7 @@ namespace JwtAuth.Controllers
             return Guid.Parse(userId!);
         }
         
-        [HttpPost("upload/tax-document/{taxCaseId}")]
+        [HttpPost("tax-document/upload/{taxCaseId}")]
         public async Task<ActionResult<DocumentDto>> UploadDocument(
             int taxCaseId,
             [FromForm] UploadDocumentDto request)
@@ -62,7 +62,7 @@ namespace JwtAuth.Controllers
 
         }
 
-        [HttpGet("search/tax-document/{taxCaseId}")]
+        [HttpGet("tax-document/search/{taxCaseId}")]
         public async Task<ActionResult<List<DocumentDto>>> GetDocuments(int taxCaseId)
         {
             Guid userId = GetCurrentUserId();
@@ -73,7 +73,7 @@ namespace JwtAuth.Controllers
             return Ok(document);
         }
 
-        [HttpGet("tax-document/{documentId}/download")]
+        [HttpGet("tax-document/download/{documentId}")]
         public async Task <IActionResult> DownloadDocument(int documentId)
         {
             Guid userId = GetCurrentUserId();
@@ -91,7 +91,7 @@ namespace JwtAuth.Controllers
                 document.FileName);
         }
 
-        [HttpDelete("delete/tax-document/{documentId}")]
+        [HttpDelete("tax-document/delete/{documentId}")]
         public async Task<IActionResult> DeleteDocument(int documentId)
         {
             Guid userId = GetCurrentUserId();

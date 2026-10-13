@@ -95,19 +95,30 @@ namespace JwtAuth.Services
                     TaxCaseId = taxCaseId,
                     UploadedByUserId = userId,
                     DocumentTypeId = documentTypeId
-                }
-                ;
-
+                };
+                
                 _context.Documents.Add(document);
 
-                await _context.SaveChangesAsync();
-            
+                 await _context.SaveChangesAsync();
+
+                DocumentRequest? documentRequest = await _context.DocumentRequests
+                    .FirstOrDefaultAsync(request =>
+                    request.TaxCaseId == taxCaseId &&
+                    request.DocumentTypeId == documentTypeId);
+
+                if (documentRequest is not null)
+                {
+                    documentRequest.IsCompleted = true;
+
+                    await _context.SaveChangesAsync();
+                }
+
                 DocumentType? documentType = await _context.DocumentTypes
                     .Include(documentType => documentType.DocumentCategory)
                     .FirstOrDefaultAsync(documentType =>
-                documentType.Id == documentTypeId);
+                     documentType.Id == documentTypeId);
             
-            return new DocumentDto
+                return new DocumentDto
                 {
                     Id = document.Id,
                     FileName = document.FileName,
@@ -118,7 +129,7 @@ namespace JwtAuth.Services
                     DocumentTypeId = document.DocumentTypeId,
                     DocumentType = documentType?.Name,
                     DocumentCategory = documentType?.DocumentCategory.Name
-            };
+                };
             
         }
         
@@ -191,6 +202,10 @@ namespace JwtAuth.Services
                 return false;
             }
 
+            int taxCaseId = document.TaxCaseId;
+
+            int? documentTypeId = document.DocumentTypeId;
+
             string uploadsFolder = Path.Combine(
                 _environment.ContentRootPath,
                 "Uploads");
@@ -210,8 +225,34 @@ namespace JwtAuth.Services
 
             await _context.SaveChangesAsync();
 
+
+           // Check if another same type document still exist
+
+            if (documentTypeId is not null)
+            {
+                bool anotherDocumentExists = await _context.Documents.AnyAsync(existingDocument =>
+                        existingDocument.TaxCaseId == taxCaseId &&
+                        existingDocument.DocumentTypeId == documentTypeId);
+
+                if (!anotherDocumentExists)
+                {
+                    DocumentRequest? documentRequest = await _context.DocumentRequests
+                            .FirstOrDefaultAsync(request =>
+                                request.TaxCaseId == taxCaseId &&
+                                request.DocumentTypeId == documentTypeId);
+
+                    if (documentRequest is not null)
+                    {
+                        documentRequest.IsCompleted = false;
+
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+            }
+
             return true;
-                
+
         }
 
         public async Task<List<DocumentCategoryDto>> GetDocumentCategoriesAsync()

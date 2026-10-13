@@ -9,7 +9,7 @@ namespace JwtAuth.Services
 
         Task<List<DocumentDto>> GetDocumentByTaxCaseAsync(int taxCaseId, Guid userId);
 
-        Task<DownloadDocumentDto> GetDocumentForDownloadAsync(int documentId, Guid userId);
+        Task<DownloadDocumentDto?> GetDocumentForDownloadAsync(int documentId, Guid userId);
 
         Task<bool> DeleteDocumentAsync(int documentId, Guid userId);
 

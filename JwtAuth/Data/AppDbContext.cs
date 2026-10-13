@@ -141,5 +141,7 @@ namespace JwtAuth.Data
         public DbSet<DocumentCategory> DocumentCategories { get; set; }
 
         public DbSet<DocumentType> DocumentTypes { get; set; }
+
+        public DbSet<DocumentRequest> DocumentRequests { get; set; }
     }
 }

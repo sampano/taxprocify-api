@@ -13,6 +13,7 @@
 
         public List<Document> Documents { get; set; } = [];
 
+        public List<DocumentRequest> DocumentRequests { get; set; } = [];
 
     }
 }
