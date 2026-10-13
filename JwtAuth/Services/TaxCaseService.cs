@@ -173,6 +173,82 @@ namespace JwtAuth.Services
             
             return true;
         }
+
+        public async Task<TaxCaseSummaryDto?> GetTaxCaseSummaryAsync(int taxCaseId, Guid userId)
+        {
+            TaxCase? taxCase = await _context.TaxCases
+                .Include(taxCase => taxCase.DocumentRequests)
+                    .ThenInclude(request => request.DocumentType)
+                        .ThenInclude(documentType => documentType.DocumentCategory)
+                .Include(taxCase => taxCase.Documents)
+                    .ThenInclude(document => document.DocumentType)
+                        .ThenInclude(documentType => documentType!.DocumentCategory)
+                .FirstOrDefaultAsync(taxCase =>
+                    taxCase.Id == taxCaseId &&
+                    taxCase.Client.UserId == userId);
+
+            if (taxCase is null)
+            {
+                return null;
+            }
+
+            int requestedCount =
+                taxCase.DocumentRequests.Count;
+
+            int completedCount =
+                taxCase.DocumentRequests.Count(request =>
+                    request.IsCompleted);
+
+            int missingCount =
+                taxCase.DocumentRequests.Count(request =>
+                    !request.IsCompleted);
+
+            double progressPercentage =
+                requestedCount == 0
+                    ? 0
+                    : Math.Round(
+                        (double)completedCount / requestedCount * 100,
+                        2);
+
+            return new TaxCaseSummaryDto
+            {
+                Id = taxCase.Id,
+                ClientId = taxCase.ClientId,
+                TaxYear = taxCase.TaxYear,
+                Status = taxCase.Status,
+
+                RequestedDocumentsCount = requestedCount,
+                CompletedDocumentsCount = completedCount,
+                MissingDocumentsCount = missingCount,
+                DocumentProgressPercentage = progressPercentage,
+
+                MissingDocuments = taxCase.DocumentRequests
+                    .Where(request => !request.IsCompleted)
+                    .Select(request => new DocumentRequestSummaryDto
+                    {
+                        DocumentTypeId = request.DocumentTypeId,
+                        DocumentType = request.DocumentType.Name,
+                        DocumentCategory =
+                            request.DocumentType.DocumentCategory.Name,
+                        Note = request.Note
+                    })
+                    .ToList(),
+
+                RecentDocuments = taxCase.Documents
+                    .OrderByDescending(document => document.UploadedAt)
+                    .Take(5)
+                    .Select(document => new RecentDocumentDto
+                    {
+                        Id = document.Id,
+                        FileName = document.FileName,
+                        DocumentType = document.DocumentType?.Name,
+                        DocumentCategory =
+                            document.DocumentType?.DocumentCategory.Name,
+                        UploadedAt = document.UploadedAt
+                    })
+                    .ToList()
+            };
+        }
     }
 
 

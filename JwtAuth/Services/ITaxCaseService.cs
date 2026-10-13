@@ -13,5 +13,7 @@ namespace JwtAuth.Services
         Task<TaxCaseDto?> UpdateTaxCaseAsync( int id, UpdateTaxCaseDto request, Guid userId);
 
         Task<bool> DeleteTaxCaseAsync(int id,Guid userId);
+
+        Task<TaxCaseSummaryDto?> GetTaxCaseSummaryAsync(int taxCaseId, Guid userId);
     }
 }

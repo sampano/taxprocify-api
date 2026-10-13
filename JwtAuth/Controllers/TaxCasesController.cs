@@ -137,5 +137,23 @@ namespace JwtAuth.Controllers
 
             return NoContent();
         }
+
+        [HttpGet("{taxCaseId}/summary")]
+        public async Task<ActionResult<TaxCaseSummaryDto>> GetTaxCaseSummary(int taxCaseId)
+        {
+            Guid userId = GetCurrentUserId();
+
+            TaxCaseSummaryDto? summary =
+                await _taxCaseService.GetTaxCaseSummaryAsync(
+                    taxCaseId,
+                    userId);
+
+            if (summary is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(summary);
+        }
     }
 }
