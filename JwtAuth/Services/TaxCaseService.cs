@@ -2,12 +2,36 @@
 using JwtAuth.Dtos.TaxCases;
 using JwtAuth.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace JwtAuth.Services
 {
     public class TaxCaseService : ITaxCaseService
     {
         private readonly AppDbContext _context;
+
+        public static readonly Expression<Func<TaxCase, TaxCaseDto>> TaxCaseToDto = taxCase => new TaxCaseDto
+        {
+            Id = taxCase.Id,
+            TaxYear = taxCase.TaxYear,
+            Status = taxCase.Status,
+            CreatedAt = taxCase.CreatedAt,
+            ClientId = taxCase.ClientId,
+
+            RequestedDocumentsCount = taxCase.DocumentRequests.Count,
+
+            CompletedDocumentsCount = taxCase.DocumentRequests.Count(
+                request => request.IsCompleted),
+
+            MissingDocumentsCount = taxCase.DocumentRequests.Count(
+                request => !request.IsCompleted),
+
+            DocumentProgressPercentage = taxCase.DocumentRequests.Count == 0 ? 0 : Math.Round(
+                    (double)taxCase.DocumentRequests.Count(
+                        request => request.IsCompleted)
+                    / taxCase.DocumentRequests.Count
+                    * 100, 2)
+        };
 
         public TaxCaseService(AppDbContext context)
         {
@@ -20,27 +44,7 @@ namespace JwtAuth.Services
                 .Where(taxCase =>
                 taxCase.ClientId == clientId &&
                 taxCase.Client.UserId == userId)
-                .Select(taxCase => new TaxCaseDto
-                {
-                    Id = taxCase.Id,
-                    TaxYear = taxCase.TaxYear,
-                    Status = taxCase.Status,
-                    CreatedAt = taxCase.CreatedAt,
-                    ClientId = taxCase.ClientId,
-
-                    RequestedDocumentsCount = taxCase.DocumentRequests.Count,
-
-                    CompletedDocumentsCount = taxCase.DocumentRequests.Count(
-                        request => request.IsCompleted),
-
-                    MissingDocumentsCount = taxCase.DocumentRequests.Count(
-                        request => !request.IsCompleted),
-
-                    DocumentProgressPercentage = taxCase.DocumentRequests.Count == 0 ? 0 : Math.Round(
-                        (double)taxCase.DocumentRequests.Count( request => request.IsCompleted)
-                        / taxCase.DocumentRequests.Count
-                        * 100, 2)
-                })
+                .Select(TaxCaseToDto)
                 .ToListAsync();
         }
 
@@ -57,29 +61,12 @@ namespace JwtAuth.Services
                 return null;
             }
 
-            int requestedCount = taxCase.DocumentRequests.Count;
-
-            int completedCount = taxCase.DocumentRequests
-                .Count(request => request.IsCompleted);
-
-            int missingCount = requestedCount - completedCount;
-
-            double progressPercentage = requestedCount == 0 ? 0 : Math.Round(
-                        (double)completedCount / requestedCount * 100, 2);
-
-            return new TaxCaseDto
-            {
-                Id = taxCase.Id,
-                TaxYear = taxCase.TaxYear,
-                Status = taxCase.Status,
-                CreatedAt = taxCase.CreatedAt,
-                ClientId = taxCase.ClientId,
-
-                RequestedDocumentsCount = requestedCount,
-                CompletedDocumentsCount = completedCount,
-                MissingDocumentsCount = missingCount,
-                DocumentProgressPercentage = progressPercentage
-            };
+            return await _context.TaxCases
+             .Where(taxCase =>
+                 taxCase.Id == id &&
+                 taxCase.Client.UserId == userId)
+             .Select(TaxCaseToDto)
+             .FirstOrDefaultAsync();
         }
 
         public async Task<TaxCaseDto?> CreateTaxCaseAsync(int clientId, CreateTaxCaseDto request, Guid userId)
