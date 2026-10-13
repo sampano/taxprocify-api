@@ -123,5 +123,36 @@ namespace JwtAuth.Services
             return true;
         }
 
+        public async Task<DocumentRequestDto?> UpdateDocumentRequestAsync(int documentRequestId, UpdateDocumentRequestDto request, Guid userId)
+        {
+            DocumentRequest? documentRequest =await _context.DocumentRequests
+                    .Include(documentRequest => documentRequest.DocumentType)
+                        .ThenInclude(documentType => documentType.DocumentCategory)
+                    .FirstOrDefaultAsync(documentRequest =>
+                        documentRequest.Id == documentRequestId &&
+                        documentRequest.TaxCase.Client.UserId == userId);
+
+            if (documentRequest is null)
+            {
+                return null;
+            }
+
+            documentRequest.Note = request.Note;
+
+            await _context.SaveChangesAsync();
+
+            return new DocumentRequestDto
+            {
+                Id = documentRequest.Id,
+                TaxCaseId = documentRequest.TaxCaseId,
+                DocumentTypeId = documentRequest.DocumentTypeId,
+                DocumentType = documentRequest.DocumentType.Name,
+                DocumentCategory = documentRequest.DocumentType.DocumentCategory.Name,
+                Note = documentRequest.Note,
+                IsCompleted = documentRequest.IsCompleted,
+                CreatedAt = documentRequest.CreatedAt
+            };
+        }
+
     }
 }

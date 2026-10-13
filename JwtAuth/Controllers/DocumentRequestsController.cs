@@ -26,7 +26,7 @@ namespace JwtAuth.Controllers
             return Guid.Parse(userId!);
         }
 
-        [HttpPost("tax-case/{taxCaseId}")]
+        [HttpPost("create/{taxCaseId}")]
         public async Task<ActionResult<DocumentRequestDto>> CreateDocumentRequest(
                 int taxCaseId,
                 CreateDocumentRequestDto request)
@@ -58,7 +58,7 @@ namespace JwtAuth.Controllers
             }
         }
 
-        [HttpGet("tax-case/{taxCaseId}")]
+        [HttpGet("search/{taxCaseId}")]
         public async Task<ActionResult<List<DocumentRequestDto>>> GetDocumentRequests(int taxCaseId)
         {
             Guid userId = GetCurrentUserId();
@@ -71,7 +71,7 @@ namespace JwtAuth.Controllers
             return Ok(requests);
         }
 
-        [HttpDelete("{documentRequestId}")]
+        [HttpDelete("delete/{documentRequestId}")]
         public async Task<IActionResult> DeleteDocumentRequest(
         int documentRequestId)
         {
@@ -89,6 +89,26 @@ namespace JwtAuth.Controllers
             }
 
             return NoContent();
+        }
+
+        [HttpPut("update/{documentRequestId}")]
+        public async Task<ActionResult<DocumentRequestDto>> UpdateDocumentRequest( int documentRequestId, UpdateDocumentRequestDto request)
+        {
+            Guid userId = GetCurrentUserId();
+
+            DocumentRequestDto? documentRequest =
+                await _documentRequestService
+                    .UpdateDocumentRequestAsync(
+                        documentRequestId,
+                        request,
+                        userId);
+
+            if (documentRequest is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(documentRequest);
         }
     }
 }
