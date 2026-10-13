@@ -7,6 +7,7 @@ namespace JwtAuth.Enums
     {
         Draft,
         Waiting,
+        WaitingForDocuments,
         InReview,
         ReadyToFile,
         Filed,

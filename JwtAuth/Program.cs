@@ -52,6 +52,7 @@ builder.Services.AddScoped<IDocumentRequestService, DocumentRequestService>();
 
 builder.Services.AddScoped<IDocumentRequestService, DocumentRequestService>();
 
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 var app = builder.Build();
 
