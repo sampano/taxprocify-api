@@ -96,6 +96,18 @@ namespace JwtAuth.Services
                 UploadedAt = document.UploadedAt
             }).ToListAsync();
 
+
+            List<TaxCaseStatusCountDto> taxCaseStatusBreakdown = await _context.TaxCases
+            .Where(taxCase => taxCase.Client.UserId == userId)
+            .GroupBy(taxCase => taxCase.Status)
+            .Select(group => new TaxCaseStatusCountDto
+            {
+                Status = group.Key,
+                Count = group.Count()
+            })
+            .OrderBy(status => status.Status)
+            .ToListAsync();
+
             return new DashboardSummaryDto
             {
                 TotalClients = totalClients,
@@ -109,7 +121,9 @@ namespace JwtAuth.Services
 
                 CasesNeedingAttention = casesNeedingAttention,
 
-                RecentActivity = recentActivity
+                RecentActivity = recentActivity,
+
+                TaxCaseStatusBreakdown = taxCaseStatusBreakdown
             };
         }
     }

@@ -21,5 +21,7 @@
         public List<CaseAttentionDto> CasesNeedingAttention { get; set; } = [];
 
         public List<RecentActivityDto> RecentActivity { get; set; } = [];
+
+        public List<TaxCaseStatusCountDto> TaxCaseStatusBreakdown { get; set; } = [];
     }
 }
