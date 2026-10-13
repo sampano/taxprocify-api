@@ -14,9 +14,7 @@ namespace JwtAuth.Services
             _context = context;
         }
 
-        public async Task<List<TaxCaseDto>> GetTaxCaseByClientAsync(
-            int clientId,
-            Guid userId)
+        public async Task<List<TaxCaseDto>> GetTaxCaseByClientAsync(int clientId, Guid userId)
         {
             return await _context.TaxCases
                 .Where(taxCase =>
@@ -28,16 +26,28 @@ namespace JwtAuth.Services
                     TaxYear = taxCase.TaxYear,
                     Status = taxCase.Status,
                     CreatedAt = taxCase.CreatedAt,
-                    ClientId = taxCase.ClientId
+                    ClientId = taxCase.ClientId,
+
+                    RequestedDocumentsCount = taxCase.DocumentRequests.Count,
+
+                    CompletedDocumentsCount = taxCase.DocumentRequests.Count(
+                        request => request.IsCompleted),
+
+                    MissingDocumentsCount = taxCase.DocumentRequests.Count(
+                        request => !request.IsCompleted),
+
+                    DocumentProgressPercentage = taxCase.DocumentRequests.Count == 0 ? 0 : Math.Round(
+                        (double)taxCase.DocumentRequests.Count( request => request.IsCompleted)
+                        / taxCase.DocumentRequests.Count
+                        * 100, 2)
                 })
                 .ToListAsync();
         }
 
-        public async Task<TaxCaseDto?> GetTaxCaseByIdAsync(
-            int id,
-            Guid userId)
+        public async Task<TaxCaseDto?> GetTaxCaseByIdAsync(int id, Guid userId)
         {
             TaxCase? taxCase = await _context.TaxCases
+                .Include(taxCase => taxCase.DocumentRequests)
                 .FirstOrDefaultAsync(taxCase =>
                     taxCase.Id == id &&
                     taxCase.Client.UserId == userId);
@@ -47,20 +57,32 @@ namespace JwtAuth.Services
                 return null;
             }
 
+            int requestedCount = taxCase.DocumentRequests.Count;
+
+            int completedCount = taxCase.DocumentRequests
+                .Count(request => request.IsCompleted);
+
+            int missingCount = requestedCount - completedCount;
+
+            double progressPercentage = requestedCount == 0 ? 0 : Math.Round(
+                        (double)completedCount / requestedCount * 100, 2);
+
             return new TaxCaseDto
             {
                 Id = taxCase.Id,
                 TaxYear = taxCase.TaxYear,
                 Status = taxCase.Status,
                 CreatedAt = taxCase.CreatedAt,
-                ClientId = taxCase.ClientId
+                ClientId = taxCase.ClientId,
+
+                RequestedDocumentsCount = requestedCount,
+                CompletedDocumentsCount = completedCount,
+                MissingDocumentsCount = missingCount,
+                DocumentProgressPercentage = progressPercentage
             };
         }
 
-        public async Task<TaxCaseDto?> CreateTaxCaseAsync(
-            int clientId,
-            CreateTaxCaseDto request,
-            Guid userId)
+        public async Task<TaxCaseDto?> CreateTaxCaseAsync(int clientId, CreateTaxCaseDto request, Guid userId)
         {
 
             Client? client = await _context.Clients
