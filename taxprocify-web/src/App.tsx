@@ -6,53 +6,70 @@ import ClientsPage from "./pages/ClientsPage";
 import AddClientPage from "./pages/AddClientPage";
 import ClientDetailsPage from "./pages/ClientDetailsPage";
 import TaxCaseDetailsPage from "./pages/TaxCaseDetailsPage";
+import AddTaxCasePage from "./pages/AddTaxCasePage";
+import AppLayout from "./components/AppLayout";
 import "./App.css";
 
 function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-
       <Route
-        path="/dashboard"
         element={
           <ProtectedRoute>
-            <DashboardPage />
+            <AppLayout />
           </ProtectedRoute>
         }
-      />
-      <Route
-        path="/clients"
-        element={
-          <ProtectedRoute>
-            <ClientsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/clients/new"
-        element={
-          <ProtectedRoute>
-            <AddClientPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/clients/:id"
-        element={
-          <ProtectedRoute>
-            <ClientDetailsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tax-cases/:id"
-        element={
-          <ProtectedRoute>
-            <TaxCaseDetailsPage />
-          </ProtectedRoute>
-        }
-      />
+      >
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clients"
+          element={
+            <ProtectedRoute>
+              <ClientsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clients/new"
+          element={
+            <ProtectedRoute>
+              <AddClientPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clients/:id"
+          element={
+            <ProtectedRoute>
+              <ClientDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tax-cases/:id"
+          element={
+            <ProtectedRoute>
+              <TaxCaseDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clients/:clientId/tax-cases/new"
+          element={
+            <ProtectedRoute>
+              <AddTaxCasePage />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
       <Route path="/" element={<Navigate to="/login" replace />} />
     </Routes>
   );

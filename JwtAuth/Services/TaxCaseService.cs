@@ -226,6 +226,7 @@ namespace JwtAuth.Services
                     .Where(request => !request.IsCompleted)
                     .Select(request => new DocumentRequestSummaryDto
                     {
+                        Id = request.Id,
                         DocumentTypeId = request.DocumentTypeId,
                         DocumentType = request.DocumentType.Name,
                         DocumentCategory =

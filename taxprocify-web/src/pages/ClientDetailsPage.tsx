@@ -133,6 +133,7 @@ function ClientDetailsPage() {
 
             <button
               type="button"
+              onClick={() => navigate(`/clients/${client.id}/tax-cases/new`)}
               className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
             >
               Add Tax Case

@@ -2,6 +2,8 @@
 {
     public class DocumentRequestSummaryDto
     {
+        public int Id { get; set; }
+
         public int DocumentTypeId { get; set; }
 
         public string DocumentType { get; set; } = string.Empty;

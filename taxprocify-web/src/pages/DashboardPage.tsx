@@ -73,13 +73,13 @@ function DashboardPage() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
 
-        <button
+        {/*<button
           type="button"
           onClick={handleLogout}
           className="rounded-lg bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700"
         >
           Logout
-        </button>
+        </button>*/}
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl bg-white p-6 shadow">

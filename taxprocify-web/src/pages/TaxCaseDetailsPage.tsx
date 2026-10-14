@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/apiClient";
 
 type MissingDocument = {
+  id: number;
   documentTypeId: number;
   documentType: string;
   documentCategory: string;
@@ -30,48 +31,96 @@ type TaxCaseSummary = {
   recentDocuments: RecentDocument[];
 };
 
+type DocumentType = {
+  id: number;
+  name: string;
+};
+
+type DocumentCategory = {
+  id: number;
+  name: string;
+  documentTypes: DocumentType[];
+};
+
 function TaxCaseDetailsPage() {
+  // Get the tax case ID from the URL parameters
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // State for uploading documents
   const [selectedDocumentTypeId, setSelectedDocumentTypeId] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
+  // State for editing document requests
+  const [editingRequestId, setEditingRequestId] = useState<number | null>(null);
+  const [editingNote, setEditingNote] = useState("");
+  const [requestActionError, setRequestActionError] = useState("");
+  const [documentCategories, setDocumentCategories] = useState<
+    DocumentCategory[]
+  >([]);
+
+  // State for adding document requests
+  const [requestDocumentTypeId, setRequestDocumentTypeId] = useState("");
+  const [requestNote, setRequestNote] = useState("");
+  const [requestError, setRequestError] = useState("");
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
+
+  // State for tax case details
   const [taxCase, setTaxCase] = useState<TaxCaseSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function loadTaxCase() {
-      try {
-        const response = await apiFetch(`/TaxCases/${id}/summary`);
+  async function loadDocumentCategories() {
+    try {
+      const response = await apiFetch("/Documents/tax-document/categories");
 
-        if (response.status === 404) {
-          setError("Tax case not found.");
-          return;
-        }
-
-        if (!response.ok) {
-          setError("Failed to load tax case.");
-          return;
-        }
-
-        const data: TaxCaseSummary = await response.json();
-
-        setTaxCase(data);
-      } catch (error) {
-        console.error(error);
-        setError("Unable to connect to the server.");
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        return;
       }
-    }
 
+      const data: DocumentCategory[] = await response.json();
+
+      setDocumentCategories(data);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  // Function to load tax case details
+  async function loadTaxCase() {
+    try {
+      const response = await apiFetch(`/TaxCases/${id}/summary`);
+
+      if (response.status === 404) {
+        setError("Tax case not found.");
+        return;
+      }
+
+      if (!response.ok) {
+        setError("Failed to load tax case.");
+        return;
+      }
+
+      const data: TaxCaseSummary = await response.json();
+      console.log("Missing documents:", data.missingDocuments);
+
+      setTaxCase(data);
+    } catch (error) {
+      console.error(error);
+      setError("Unable to connect to the server.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
     loadTaxCase();
+    loadDocumentCategories();
   }, [id]);
 
+  // Function for uploading documents
   async function handleUpload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -104,12 +153,214 @@ function TaxCaseDetailsPage() {
         return;
       }
 
-      window.location.reload();
+      await loadTaxCase();
+
+      setSelectedDocumentTypeId("");
+      setSelectedFile(null);
     } catch (error) {
       console.error(error);
       setUploadError("Unable to upload document.");
     } finally {
       setUploading(false);
+    }
+  }
+
+  // Function for downloading and deleting documents
+  async function handleDownload(documentId: number, fileName: string) {
+    try {
+      const response = await apiFetch(
+        `/Documents/tax-document/download/${documentId}`,
+      );
+
+      if (!response.ok) {
+        setError("Failed to download document.");
+        return;
+      }
+
+      const blob = await response.blob();
+
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      setError("Unable to download document.");
+    }
+  }
+
+  async function handleDeleteDocument(documentId: number) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this document?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await apiFetch(
+        `/Documents/tax-document/delete/${documentId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        setError("Failed to delete document.");
+        return;
+      }
+
+      await loadTaxCase();
+    } catch (error) {
+      console.error(error);
+      setError("Unable to delete document.");
+    }
+  }
+
+  // Functions for adding document requests
+  async function handleAddDocumentRequest(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (!requestDocumentTypeId || !taxCase) {
+      setRequestError("Please select a document type.");
+      return;
+    }
+
+    setRequestError("");
+    setRequestSubmitting(true);
+
+    try {
+      console.log("Tax case ID:", taxCase.id);
+      console.log(
+        "Request endpoint:",
+        `/DocumentRequests/create/${taxCase.id}`,
+      );
+      console.log("Creating document request...");
+
+      const response = await apiFetch(
+        `/DocumentRequests/create/${taxCase.id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            documentTypeId: Number(requestDocumentTypeId),
+            note: requestNote || null,
+          }),
+        },
+      );
+
+      console.log("Create request status:", response.status);
+
+      if (!response.ok) {
+        const text = await response.text();
+
+        console.log("Create request error body:", text);
+
+        if (text) {
+          try {
+            const data = JSON.parse(text);
+            setRequestError(data.message ?? "Failed to add required document.");
+          } catch {
+            setRequestError(text);
+          }
+        } else {
+          setRequestError("Failed to add required document.");
+        }
+
+        return;
+      }
+
+      console.log("Document request created successfully.");
+
+      setRequestDocumentTypeId("");
+      setRequestNote("");
+
+      console.log("Reloading tax case...");
+      await loadTaxCase();
+
+      console.log("Tax case reloaded.");
+    } catch (error) {
+      console.error("Add document request error:", error);
+      setRequestError("Unable to add required document.");
+    } finally {
+      setRequestSubmitting(false);
+    }
+  }
+
+  // Functions for editing and deleting document requests
+  async function handleUpdateRequestNote(documentRequestId: number) {
+    setRequestActionError("");
+
+    try {
+      const response = await apiFetch(
+        `/DocumentRequests/update/${documentRequestId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            note: editingNote || null,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        setRequestActionError("Failed to update note.");
+        return;
+      }
+
+      setEditingRequestId(null);
+      setEditingNote("");
+
+      await loadTaxCase();
+    } catch (error) {
+      console.error(error);
+      setRequestActionError("Unable to update note.");
+    }
+  }
+
+  // Function for deleting a document request
+  async function handleDeleteRequest(documentRequestId: number) {
+    const confirmed = window.confirm(
+      "Remove this required document from the tax case?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setRequestActionError("");
+
+    try {
+      const response = await apiFetch(
+        `/DocumentRequests/delete/${documentRequestId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        setRequestActionError("Failed to remove required document.");
+        return;
+      }
+
+      await loadTaxCase();
+    } catch (error) {
+      console.error(error);
+      setRequestActionError("Unable to remove required document.");
     }
   }
   if (!taxCase) {
@@ -175,7 +426,80 @@ function TaxCaseDetailsPage() {
             </div>
           </div>
         </div>
+        <div className="mt-8">
+          <h2 className="mb-4 text-2xl font-bold text-gray-900">
+            Add Required Document
+          </h2>
 
+          <form
+            onSubmit={handleAddDocumentRequest}
+            className="rounded-xl bg-white p-6 shadow"
+          >
+            {requestError && (
+              <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                {requestError}
+              </p>
+            )}
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="requestDocumentType"
+                  className="mb-2 block text-sm font-medium text-gray-700"
+                >
+                  Document Type
+                </label>
+
+                <select
+                  id="requestDocumentType"
+                  value={requestDocumentTypeId}
+                  onChange={(event) =>
+                    setRequestDocumentTypeId(event.target.value)
+                  }
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                >
+                  <option value="">Select document type</option>
+
+                  {documentCategories.map((category) => (
+                    <optgroup key={category.id} label={category.name}>
+                      {category.documentTypes.map((documentType) => (
+                        <option key={documentType.id} value={documentType.id}>
+                          {documentType.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="requestNote"
+                  className="mb-2 block text-sm font-medium text-gray-700"
+                >
+                  Note
+                </label>
+
+                <input
+                  id="requestNote"
+                  type="text"
+                  value={requestNote}
+                  onChange={(event) => setRequestNote(event.target.value)}
+                  placeholder="Optional instructions"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={requestSubmitting}
+              className="mt-5 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {requestSubmitting ? "Adding..." : "Add Required Document"}
+            </button>
+          </form>
+        </div>
         <div className="mt-8">
           <h2 className="mb-4 text-2xl font-bold text-gray-900">
             Missing Documents
@@ -189,21 +513,78 @@ function TaxCaseDetailsPage() {
             <div className="space-y-3">
               {taxCase.missingDocuments.map((document) => (
                 <div
-                  key={document.documentTypeId}
+                  key={document.id}
                   className="rounded-xl bg-white p-5 shadow"
                 >
-                  <p className="font-semibold text-gray-900">
-                    {document.documentType}
-                  </p>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {document.documentType}
+                      </p>
 
-                  <p className="text-sm text-gray-500">
-                    {document.documentCategory}
-                  </p>
+                      <p className="text-sm text-gray-500">
+                        {document.documentCategory}
+                      </p>
+                    </div>
 
-                  {document.note && (
-                    <p className="mt-2 text-sm text-gray-700">
-                      {document.note}
-                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingRequestId(document.id);
+                          setEditingNote(document.note ?? "");
+                        }}
+                        className="rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
+                      >
+                        Edit Note
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRequest(document.id)}
+                        className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+
+                  {editingRequestId === document.id ? (
+                    <div className="mt-4">
+                      <input
+                        type="text"
+                        value={editingNote}
+                        onChange={(event) => setEditingNote(event.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                      />
+
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateRequestNote(document.id)}
+                          className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                        >
+                          Save
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingRequestId(null);
+                            setEditingNote("");
+                          }}
+                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    document.note && (
+                      <p className="mt-3 text-sm text-gray-700">
+                        {document.note}
+                      </p>
+                    )
                   )}
                 </div>
               ))}
@@ -233,7 +614,11 @@ function TaxCaseDetailsPage() {
                 >
                   Document Type
                 </label>
-
+                {requestActionError && (
+                  <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                    {requestActionError}
+                  </p>
+                )}
                 <select
                   id="documentType"
                   value={selectedDocumentTypeId}
@@ -309,6 +694,9 @@ function TaxCaseDetailsPage() {
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-600">
                       Uploaded
                     </th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-600">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
 
@@ -320,7 +708,27 @@ function TaxCaseDetailsPage() {
                       <td className="px-6 py-4">
                         {document.documentType ?? "-"}
                       </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDownload(document.id, document.fileName)
+                            }
+                            className="rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
+                          >
+                            Download
+                          </button>
 
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDocument(document.id)}
+                            className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
                       <td className="px-6 py-4">
                         {new Date(document.uploadedAt).toLocaleDateString()}
                       </td>
