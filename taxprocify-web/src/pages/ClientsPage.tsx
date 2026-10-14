@@ -87,7 +87,11 @@ function ClientsPage() {
 
           <tbody>
             {clients.map((client) => (
-              <tr key={client.id} className="border-t border-gray-200">
+              <tr
+                key={client.id}
+                onClick={() => navigate(`/clients/${client.id}`)}
+                className="cursor-pointer border-t border-gray-200 hover:bg-gray-50"
+              >
                 <td className="px-6 py-4">
                   {client.firstName} {client.lastName}
                 </td>

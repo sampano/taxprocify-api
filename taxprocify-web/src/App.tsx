@@ -4,6 +4,8 @@ import DashboardPage from "./pages/DashboardPage";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import ClientsPage from "./pages/ClientsPage";
 import AddClientPage from "./pages/AddClientPage";
+import ClientDetailsPage from "./pages/ClientDetailsPage";
+import TaxCaseDetailsPage from "./pages/TaxCaseDetailsPage";
 import "./App.css";
 
 function App() {
@@ -32,6 +34,22 @@ function App() {
         element={
           <ProtectedRoute>
             <AddClientPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/clients/:id"
+        element={
+          <ProtectedRoute>
+            <ClientDetailsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tax-cases/:id"
+        element={
+          <ProtectedRoute>
+            <TaxCaseDetailsPage />
           </ProtectedRoute>
         }
       />
