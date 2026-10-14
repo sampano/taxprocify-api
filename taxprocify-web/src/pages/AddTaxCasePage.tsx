@@ -51,7 +51,7 @@ function AddTaxCasePage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-gray-100 p-8">
       <div className="mx-auto max-w-xl">
         <button
           type="button"
@@ -136,7 +136,7 @@ function AddTaxCasePage() {
           </div>
         </form>
       </div>
-    </main>
+    </div>
   );
 }
 

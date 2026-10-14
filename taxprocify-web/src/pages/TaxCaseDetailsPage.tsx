@@ -72,6 +72,13 @@ function TaxCaseDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // State for editing tax case details
+  const [editingTaxCase, setEditingTaxCase] = useState(false);
+  const [editTaxYear, setEditTaxYear] = useState(2000);
+  const [editStatus, setEditStatus] = useState("Draft");
+  const [taxCaseEditError, setTaxCaseEditError] = useState("");
+  const [savingTaxCase, setSavingTaxCase] = useState(false);
+
   async function loadDocumentCategories() {
     try {
       const response = await apiFetch("/Documents/tax-document/categories");
@@ -363,6 +370,107 @@ function TaxCaseDetailsPage() {
       setRequestActionError("Unable to remove required document.");
     }
   }
+
+  // Function to start editing tax case details
+  function startEditingTaxCase() {
+    if (!taxCase) {
+      return;
+    }
+
+    setEditTaxYear(taxCase.taxYear);
+    setEditStatus(taxCase.status);
+    setTaxCaseEditError("");
+    setEditingTaxCase(true);
+  }
+
+  // Function to cancel editing tax case details
+  async function handleUpdateTaxCase(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!taxCase) {
+      return;
+    }
+
+    setTaxCaseEditError("");
+    setSavingTaxCase(true);
+
+    try {
+      const response = await apiFetch(
+        `/TaxCases/updatetaxcases/${taxCase.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            taxYear: editTaxYear,
+            status: editStatus,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const text = await response.text();
+
+        if (text) {
+          try {
+            const data = JSON.parse(text);
+
+            setTaxCaseEditError(data.message ?? "Failed to update tax case.");
+          } catch {
+            setTaxCaseEditError(text);
+          }
+        } else {
+          setTaxCaseEditError("Failed to update tax case.");
+        }
+
+        return;
+      }
+
+      setEditingTaxCase(false);
+
+      await loadTaxCase();
+    } catch (error) {
+      console.error(error);
+      setTaxCaseEditError("Unable to update tax case.");
+    } finally {
+      setSavingTaxCase(false);
+    }
+  }
+
+  // Function to delete the tax case
+  async function handleDeleteTaxCase() {
+    if (!taxCase) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete tax year ${taxCase.taxYear}?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await apiFetch(
+        `/TaxCases/deletetaxcases/${taxCase.id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        setTaxCaseEditError("Failed to delete tax case.");
+        return;
+      }
+
+      navigate(`/clients/${taxCase.clientId}`);
+    } catch (error) {
+      console.error(error);
+      setTaxCaseEditError("Unable to delete tax case.");
+    }
+  }
   if (!taxCase) {
     return null;
   }
@@ -371,7 +479,7 @@ function TaxCaseDetailsPage() {
   const clientId = currentTaxCase.clientId;
 
   return (
-    <main className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-gray-100 p-8">
       <div className="mx-auto max-w-5xl">
         <button
           type="button"
@@ -395,6 +503,107 @@ function TaxCaseDetailsPage() {
               {currentTaxCase.status}
             </span>
           </div>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={startEditingTaxCase}
+              className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
+            >
+              Edit Tax Case
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDeleteTaxCase}
+              className="rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
+            >
+              Delete Tax Case
+            </button>
+          </div>
+          {editingTaxCase && (
+            <form
+              onSubmit={handleUpdateTaxCase}
+              className="mt-6 space-y-4 rounded-lg bg-gray-50 p-5"
+            >
+              {taxCaseEditError && (
+                <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                  {taxCaseEditError}
+                </p>
+              )}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="editTaxYear"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    Tax Year
+                  </label>
+
+                  <input
+                    id="editTaxYear"
+                    type="number"
+                    min={2000}
+                    max={2100}
+                    value={editTaxYear}
+                    onChange={(event) =>
+                      setEditTaxYear(Number(event.target.value))
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="editStatus"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    Status
+                  </label>
+
+                  <select
+                    id="editStatus"
+                    value={editStatus}
+                    onChange={(event) => setEditStatus(event.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                  >
+                    <option value="Draft">Draft</option>
+                    <option value="Waiting">Waiting</option>
+                    <option value="WaitingForDocuments">
+                      Waiting For Documents
+                    </option>
+                    <option value="InReview">In Review</option>
+                    <option value="ReadyToFile">Ready To File</option>
+                    <option value="Filed">Filed</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={savingTaxCase}
+                  className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {savingTaxCase ? "Saving..." : "Save Changes"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingTaxCase(false);
+                    setTaxCaseEditError("");
+                  }}
+                  className="rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
 
           <div className="mt-8 grid gap-4 md:grid-cols-4">
             <div className="rounded-lg bg-gray-50 p-4">
@@ -740,7 +949,7 @@ function TaxCaseDetailsPage() {
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

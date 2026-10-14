@@ -25,13 +25,24 @@ type TaxCase = {
 };
 
 function ClientDetailsPage() {
+  // Get the client ID from the URL parameters and set up navigation
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // State variables for client details, tax cases, loading state, and error message
   const [client, setClient] = useState<Client | null>(null);
   const [taxCases, setTaxCases] = useState<TaxCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // State variables for editing client details
+  const [editing, setEditing] = useState(false);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editError, setEditError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function loadClient() {
@@ -75,6 +86,104 @@ function ClientDetailsPage() {
     loadClient();
   }, [id]);
 
+  function startEditingClient() {
+    if (!client) {
+      return;
+    }
+
+    setEditFirstName(client.firstName);
+    setEditLastName(client.lastName);
+    setEditEmail(client.email);
+    setEditPhone(client.phone ?? "");
+    setEditError("");
+    setEditing(true);
+  }
+
+  // Function to handle updating the client details
+  async function handleUpdateClient(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!client) {
+      return;
+    }
+
+    setEditError("");
+    setSaving(true);
+
+    try {
+      const response = await apiFetch(`/Clients/updateclient/${client.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firstName: editFirstName,
+          lastName: editLastName,
+          email: editEmail,
+          phone: editPhone || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+
+        if (text) {
+          try {
+            const data = JSON.parse(text);
+            setEditError(data.message ?? "Failed to update client.");
+          } catch {
+            setEditError(text);
+          }
+        } else {
+          setEditError("Failed to update client.");
+        }
+
+        return;
+      }
+
+      const updatedClient: Client = await response.json();
+
+      setClient(updatedClient);
+      setEditing(false);
+    } catch (error) {
+      console.error(error);
+      setEditError("Unable to update client.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Function to handle deleting the client
+  async function handleDeleteClient() {
+    if (!client) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${client.firstName} ${client.lastName}?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await apiFetch(`/Clients/deleteclient/${client.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        setEditError("Failed to delete client.");
+        return;
+      }
+
+      navigate("/clients");
+    } catch (error) {
+      console.error(error);
+      setEditError("Unable to delete client.");
+    }
+  }
+
   if (loading) {
     return <p className="p-8">Loading client...</p>;
   }
@@ -88,7 +197,7 @@ function ClientDetailsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-gray-100 p-8">
       <div className="mx-auto max-w-4xl">
         <button
           type="button"
@@ -102,7 +211,132 @@ function ClientDetailsPage() {
           <h1 className="text-3xl font-bold text-gray-900">
             {client.firstName} {client.lastName}
           </h1>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={startEditingClient}
+              className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
+            >
+              Edit
+            </button>
 
+            <button
+              type="button"
+              onClick={handleDeleteClient}
+              className="rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
+            >
+              Delete
+            </button>
+            {editing && (
+              <form
+                onSubmit={handleUpdateClient}
+                className="mt-6 space-y-4 rounded-lg bg-gray-50 p-5"
+              >
+                {editError && (
+                  <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                    {editError}
+                  </p>
+                )}
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="editFirstName"
+                      className="mb-2 block text-sm font-medium text-gray-700"
+                    >
+                      First Name
+                    </label>
+
+                    <input
+                      id="editFirstName"
+                      type="text"
+                      value={editFirstName}
+                      onChange={(event) => setEditFirstName(event.target.value)}
+                      required
+                      maxLength={50}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="editLastName"
+                      className="mb-2 block text-sm font-medium text-gray-700"
+                    >
+                      Last Name
+                    </label>
+
+                    <input
+                      id="editLastName"
+                      type="text"
+                      value={editLastName}
+                      onChange={(event) => setEditLastName(event.target.value)}
+                      required
+                      maxLength={50}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="editEmail"
+                      className="mb-2 block text-sm font-medium text-gray-700"
+                    >
+                      Email
+                    </label>
+
+                    <input
+                      id="editEmail"
+                      type="email"
+                      value={editEmail}
+                      onChange={(event) => setEditEmail(event.target.value)}
+                      required
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="editPhone"
+                      className="mb-2 block text-sm font-medium text-gray-700"
+                    >
+                      Phone
+                    </label>
+
+                    <input
+                      id="editPhone"
+                      type="text"
+                      value={editPhone}
+                      onChange={(event) => setEditPhone(event.target.value)}
+                      maxLength={30}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {saving ? "Saving..." : "Save Changes"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditing(false);
+                      setEditError("");
+                    }}
+                    className="rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
           <div className="mt-6 grid gap-6 md:grid-cols-2">
             <div>
               <p className="text-sm text-gray-500">Email</p>
@@ -195,7 +429,7 @@ function ClientDetailsPage() {
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

@@ -49,7 +49,7 @@ function AddClientPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-gray-100 p-8">
       <div className="mx-auto max-w-xl">
         <h1 className="mb-6 text-3xl font-bold text-gray-900">Add Client</h1>
 
@@ -156,7 +156,7 @@ function AddClientPage() {
           </div>
         </form>
       </div>
-    </main>
+    </div>
   );
 }
 
