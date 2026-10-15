@@ -11,10 +11,12 @@ namespace JwtAuth.Services
     public class ClientService : IClientService
     {
         private readonly AppDbContext _context;
+        private readonly IEmailService _emailService;
 
-        public ClientService(AppDbContext context)
+        public ClientService(AppDbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         // Get all clients
@@ -425,6 +427,8 @@ namespace JwtAuth.Services
 
             await _context.SaveChangesAsync();
 
+            await _emailService.SendPortalAccountCreatedAsync(client.Email, password);
+            
             return true;
         }
 
@@ -443,6 +447,51 @@ namespace JwtAuth.Services
             client.PortalUserId = null;
 
             await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> ResetPortalPasswordAsync(int clientId, string password, Guid adminUserId)
+        {
+            Client? client = await _context.Clients
+                .FirstOrDefaultAsync(client =>
+                    client.Id == clientId &&
+                    client.UserId == adminUserId);
+
+            if (client is null)
+            {
+                return false;
+            }
+
+            if (client.PortalUserId is null)
+            {
+                throw new InvalidOperationException(
+                    "This client does not have a portal account.");
+            }
+
+            User? portalUser = await _context.Users
+                .FirstOrDefaultAsync(user =>
+                    user.Id == client.PortalUserId &&
+                    user.Role == "Client");
+
+            if (portalUser is null)
+            {
+                throw new InvalidOperationException(
+                    "Client portal user not found.");
+            }
+
+            portalUser.PasswordHash = new PasswordHasher<User>()
+                .HashPassword(portalUser, password);
+
+            portalUser.RefreshToken = null;
+            portalUser.RefreshTokenExpiryTime = null;
+
+            await _context.SaveChangesAsync();
+
+            //Call the reset-email method from existing client
+            await _emailService.SendPortalPasswordResetAsync(
+            portalUser.Email,
+            password);
 
             return true;
         }

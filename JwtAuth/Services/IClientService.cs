@@ -29,5 +29,7 @@ namespace JwtAuth.Services
 
         Task<bool> UnassignPortalUserAsync(int clientId, Guid adminUserId);
 
+        Task<bool> ResetPortalPasswordAsync(int clientId, string password,Guid adminUserId);
+
     }
 }

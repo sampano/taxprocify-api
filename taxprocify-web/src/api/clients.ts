@@ -147,3 +147,90 @@ export async function assignPortalUser(
 
   throw new Error(message);
 }
+
+export async function createPortalAccount(
+  clientId: number | string,
+  password: string,
+): Promise<void> {
+  const response = await apiFetch(`/Clients/${clientId}/portal-account`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      password,
+    }),
+  });
+
+  if (response.ok) {
+    return;
+  }
+
+  let message = "Failed to create portal account.";
+
+  try {
+    const data = await response.json();
+
+    if (data?.message) {
+      message = data.message;
+    }
+  } catch {
+    const text = await response.text();
+
+    if (text) {
+      message = text;
+    }
+  }
+
+  throw new Error(message);
+}
+
+export async function unassignPortalUser(
+  clientId: number | string,
+): Promise<void> {
+  const response = await apiFetch(`/Clients/${clientId}/portal-user`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to unlink portal user.");
+  }
+}
+
+export async function resetPortalPassword(
+  clientId: number | string,
+  password: string,
+): Promise<void> {
+  const response = await apiFetch(
+    `/Clients/${clientId}/portal-account/password`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ password }),
+    },
+  );
+
+  if (response.ok) {
+    return;
+  }
+
+  let message = "Failed to reset portal password.";
+
+  try {
+    const data = await response.json();
+
+    if (data?.message) {
+      message = data.message;
+    }
+  } catch {
+    const text = await response.text();
+
+    if (text) {
+      message = text;
+    }
+  }
+
+  throw new Error(message);
+}

@@ -207,5 +207,33 @@ namespace JwtAuth.Controllers
 
             return NoContent();
         }
+
+        [HttpPut("{clientId}/portal-account/password")]
+        public async Task<IActionResult> ResetPortalPassword(int clientId, ResetPortalPasswordDto request)
+        {
+            Guid adminUserId = GetCurrentUserId();
+
+            try
+            {
+                bool reset = await _clientService.ResetPortalPasswordAsync(
+                    clientId,
+                    request.Password,
+                    adminUserId);
+
+                if (!reset)
+                {
+                    return NotFound("Client not found.");
+                }
+
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

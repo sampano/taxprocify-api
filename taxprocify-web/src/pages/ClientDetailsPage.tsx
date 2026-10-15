@@ -9,6 +9,9 @@ import {
   updateClient,
   deleteClient,
   assignPortalUser,
+  createPortalAccount,
+  unassignPortalUser,
+  resetPortalPassword,
 } from "../api/clients";
 import { getTaxCasesByClient } from "../api/taxCases";
 
@@ -36,6 +39,20 @@ function ClientDetailsPage() {
   const [assigningPortalUser, setAssigningPortalUser] = useState(false);
   const [portalError, setPortalError] = useState("");
   const [portalSuccess, setPortalSuccess] = useState("");
+
+  const [resetPassword, setResetPassword] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+
+  const [unlinkingPortalUser, setUnlinkingPortalUser] = useState(false);
+
+  const [showPasswordResetSuccess, setShowPasswordResetSuccess] =
+    useState(false);
+
+  const [showPortalErrorModal, setShowPortalErrorModal] = useState(false);
+
+  const [portalPassword, setPortalPassword] = useState("");
+  const [creatingPortalAccount, setCreatingPortalAccount] = useState(false);
 
   useEffect(() => {
     async function loadClient() {
@@ -148,6 +165,8 @@ function ClientDetailsPage() {
     try {
       await assignPortalUser(client.id, portalUserId.trim());
 
+      await reloadClient();
+
       setPortalSuccess("Portal user assigned successfully.");
       setPortalUserId("");
     } catch (error) {
@@ -161,6 +180,130 @@ function ClientDetailsPage() {
     } finally {
       setAssigningPortalUser(false);
     }
+  }
+
+  async function handleCreatePortalAccount(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (!client) {
+      return;
+    }
+
+    if (!portalPassword.trim()) {
+      setPortalError("Please enter a temporary password.");
+      return;
+    }
+
+    setPortalError("");
+    setPortalSuccess("");
+    setCreatingPortalAccount(true);
+
+    try {
+      await createPortalAccount(client.id, portalPassword.trim());
+
+      await reloadClient();
+
+      setPortalSuccess(
+        `Portal account created successfully for ${client.email}.`,
+      );
+
+      setPortalPassword("");
+    } catch (error) {
+      console.error(error);
+
+      setPortalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to create portal account.",
+      );
+      setShowPortalErrorModal(true);
+    } finally {
+      setCreatingPortalAccount(false);
+    }
+  }
+
+  async function handleUnassignPortalUser() {
+    if (!client) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Are you sure you want to unlink this portal account?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setPortalError("");
+    setPortalSuccess("");
+    setUnlinkingPortalUser(true);
+
+    try {
+      await unassignPortalUser(client.id);
+
+      await reloadClient();
+
+      setPortalSuccess("Portal account unlinked successfully.");
+    } catch (error) {
+      console.error(error);
+
+      setPortalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to unlink portal account.",
+      );
+    } finally {
+      setUnlinkingPortalUser(false);
+    }
+  }
+
+  async function handleResetPortalPassword(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (!client) {
+      return;
+    }
+
+    if (!resetPassword.trim()) {
+      setPortalError("Please enter a new temporary password.");
+      return;
+    }
+
+    setPortalError("");
+    setPortalSuccess("");
+    setResettingPassword(true);
+
+    try {
+      await resetPortalPassword(client.id, resetPassword.trim());
+
+      setShowPasswordResetSuccess(true);
+      setResetPassword("");
+      setShowResetPassword(false);
+    } catch (error) {
+      console.error(error);
+
+      setPortalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to reset portal password.",
+      );
+    } finally {
+      setResettingPassword(false);
+    }
+  }
+
+  async function reloadClient() {
+    if (!id) {
+      return;
+    }
+
+    const data = await getClientById(id);
+    setClient(data);
   }
 
   if (loading) {
@@ -414,54 +557,249 @@ function ClientDetailsPage() {
             Portal Account
           </h2>
 
-          <form
-            onSubmit={handleAssignPortalUser}
-            className="rounded-xl bg-white p-6 shadow"
-          >
-            <p className="mb-4 text-sm text-gray-500">
-              Assign an existing Client-role user account to this client.
-            </p>
+          {client.portalUserId ? (
+            <div className="rounded-xl bg-white p-6 shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Portal Account Active
+                  </h3>
 
-            {portalError && (
-              <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
-                {portalError}
-              </p>
-            )}
+                  <p className="mt-1 text-sm text-gray-500">
+                    This client already has a portal login account.
+                  </p>
+                </div>
 
-            {portalSuccess && (
-              <p className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-600">
-                {portalSuccess}
-              </p>
-            )}
+                <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
+                  Active
+                </span>
+              </div>
 
-            <div>
-              <label
-                htmlFor="portalUserId"
-                className="mb-2 block text-sm font-medium text-gray-700"
+              <div className="mt-5">
+                <p className="text-sm text-gray-500">Login Email</p>
+                <p className="font-medium text-gray-900">{client.email}</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowResetPassword((current) => !current)}
+                className="mt-5 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
               >
-                Portal User ID
-              </label>
+                Reset Password
+              </button>
 
-              <input
-                id="portalUserId"
-                type="text"
-                value={portalUserId}
-                onChange={(event) => setPortalUserId(event.target.value)}
-                placeholder="Enter Client user GUID"
-                className="w-full rounded-lg border border-gray-300 px-4 py-3"
-              />
+              <button
+                type="button"
+                onClick={handleUnassignPortalUser}
+                disabled={unlinkingPortalUser}
+                className="mt-5 rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
+              >
+                {unlinkingPortalUser ? "Unlinking..." : "Unlink Portal Account"}
+              </button>
+
+              {showResetPassword && (
+                <form
+                  onSubmit={handleResetPortalPassword}
+                  className="mt-4 rounded-lg bg-gray-50 p-4"
+                >
+                  <label
+                    htmlFor="resetPortalPassword"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    New Temporary Password
+                  </label>
+
+                  <input
+                    id="resetPortalPassword"
+                    type="password"
+                    value={resetPassword}
+                    onChange={(event) => setResetPassword(event.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                  />
+
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={resettingPassword}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {resettingPassword ? "Resetting..." : "Reset Password"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowResetPassword(false);
+                        setResetPassword("");
+                      }}
+                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
+          ) : (
+            <div className="space-y-6">
+              <form
+                onSubmit={handleCreatePortalAccount}
+                className="rounded-xl bg-white p-6 shadow"
+              >
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Create Portal Account
+                </h3>
 
-            <button
-              type="submit"
-              disabled={assigningPortalUser}
-              className="mt-4 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {assigningPortalUser ? "Assigning..." : "Assign Portal User"}
-            </button>
-          </form>
+                <p className="mt-1 text-sm text-gray-500">
+                  Create a login account for this client.
+                </p>
+
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="portalEmail"
+                      className="mb-2 block text-sm font-medium text-gray-700"
+                    >
+                      Login Email
+                    </label>
+
+                    <input
+                      id="portalEmail"
+                      type="email"
+                      value={client.email}
+                      disabled
+                      className="w-full rounded-lg border border-gray-300 bg-gray-100 px-4 py-3 text-gray-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="portalPassword"
+                      className="mb-2 block text-sm font-medium text-gray-700"
+                    >
+                      Temporary Password
+                    </label>
+
+                    <input
+                      id="portalPassword"
+                      type="password"
+                      value={portalPassword}
+                      onChange={(event) =>
+                        setPortalPassword(event.target.value)
+                      }
+                      placeholder="Enter temporary password"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={creatingPortalAccount}
+                  className="mt-4 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {creatingPortalAccount
+                    ? "Creating..."
+                    : "Create Portal Account"}
+                </button>
+              </form>
+
+              <form
+                onSubmit={handleAssignPortalUser}
+                className="rounded-xl bg-white p-6 shadow"
+              >
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Assign Existing Portal User
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Use this only if a Client-role user account already exists.
+                </p>
+
+                <div className="mt-5">
+                  <label
+                    htmlFor="portalUserId"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    Portal User ID
+                  </label>
+
+                  <input
+                    id="portalUserId"
+                    type="text"
+                    value={portalUserId}
+                    onChange={(event) => setPortalUserId(event.target.value)}
+                    placeholder="Enter Client user GUID"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={assigningPortalUser}
+                  className="mt-4 rounded-lg border border-blue-600 px-4 py-2 font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+                >
+                  {assigningPortalUser
+                    ? "Assigning..."
+                    : "Assign Existing User"}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </div>
+      {showPasswordResetSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-xl font-bold text-gray-900">
+              Password Updated
+            </h3>
+
+            <p className="mt-3 text-sm text-gray-600">
+              The portal password has been changed successfully.
+            </p>
+
+            <p className="mt-2 text-sm text-gray-500">
+              The client can now log in using the new password.
+            </p>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowPasswordResetSuccess(false)}
+                className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPortalErrorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-xl font-bold text-gray-900">
+              Unable to Complete Action
+            </h3>
+
+            <p className="mt-3 text-sm text-gray-600">{portalError}</p>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPortalErrorModal(false);
+                  setPortalError("");
+                }}
+                className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

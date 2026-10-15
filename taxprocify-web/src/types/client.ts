@@ -6,6 +6,7 @@ export type Client = {
   phone: string | null;
   createdAt: string;
   userId: string;
+  portalUserId: string | null;
 };
 
 export type PagedClients = {
