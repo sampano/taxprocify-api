@@ -4,7 +4,12 @@ import { apiFetch } from "../api/apiClient";
 import TaxCaseStatusBadge from "../components/TaxCaseStatusBadge";
 import type { Client } from "../types/client";
 import type { TaxCase } from "../types/taxCase";
-import { getClientById, updateClient, deleteClient } from "../api/clients";
+import {
+  getClientById,
+  updateClient,
+  deleteClient,
+  assignPortalUser,
+} from "../api/clients";
 import { getTaxCasesByClient } from "../api/taxCases";
 
 function ClientDetailsPage() {
@@ -26,6 +31,11 @@ function ClientDetailsPage() {
   const [editPhone, setEditPhone] = useState("");
   const [editError, setEditError] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const [portalUserId, setPortalUserId] = useState("");
+  const [assigningPortalUser, setAssigningPortalUser] = useState(false);
+  const [portalError, setPortalError] = useState("");
+  const [portalSuccess, setPortalSuccess] = useState("");
 
   useEffect(() => {
     async function loadClient() {
@@ -114,6 +124,42 @@ function ClientDetailsPage() {
     } catch (error) {
       console.error(error);
       setEditError("Unable to delete client.");
+    }
+  }
+
+  async function handleAssignPortalUser(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (!client) {
+      return;
+    }
+
+    if (!portalUserId.trim()) {
+      setPortalError("Please enter a portal user ID.");
+      return;
+    }
+
+    setPortalError("");
+    setPortalSuccess("");
+    setAssigningPortalUser(true);
+
+    try {
+      await assignPortalUser(client.id, portalUserId.trim());
+
+      setPortalSuccess("Portal user assigned successfully.");
+      setPortalUserId("");
+    } catch (error) {
+      console.error(error);
+
+      setPortalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to assign portal user.",
+      );
+    } finally {
+      setAssigningPortalUser(false);
     }
   }
 
@@ -362,6 +408,58 @@ function ClientDetailsPage() {
               </table>
             </div>
           )}
+        </div>
+        <div className="mt-8">
+          <h2 className="mb-4 text-2xl font-bold text-gray-900">
+            Portal Account
+          </h2>
+
+          <form
+            onSubmit={handleAssignPortalUser}
+            className="rounded-xl bg-white p-6 shadow"
+          >
+            <p className="mb-4 text-sm text-gray-500">
+              Assign an existing Client-role user account to this client.
+            </p>
+
+            {portalError && (
+              <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                {portalError}
+              </p>
+            )}
+
+            {portalSuccess && (
+              <p className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-600">
+                {portalSuccess}
+              </p>
+            )}
+
+            <div>
+              <label
+                htmlFor="portalUserId"
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
+                Portal User ID
+              </label>
+
+              <input
+                id="portalUserId"
+                type="text"
+                value={portalUserId}
+                onChange={(event) => setPortalUserId(event.target.value)}
+                placeholder="Enter Client user GUID"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={assigningPortalUser}
+              className="mt-4 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {assigningPortalUser ? "Assigning..." : "Assign Portal User"}
+            </button>
+          </form>
         </div>
       </div>
     </div>

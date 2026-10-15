@@ -113,3 +113,37 @@ export async function deleteClient(clientId: number | string): Promise<void> {
     throw new Error("Failed to delete client.");
   }
 }
+
+export async function assignPortalUser(
+  clientId: number | string,
+  userId: string,
+): Promise<void> {
+  const response = await apiFetch(
+    `/Clients/${clientId}/portal-user/${userId}`,
+    {
+      method: "PUT",
+    },
+  );
+
+  if (response.ok) {
+    return;
+  }
+
+  let message = "Failed to assign portal user.";
+
+  try {
+    const data = await response.json();
+
+    if (data?.message) {
+      message = data.message;
+    }
+  } catch {
+    const text = await response.text();
+
+    if (text) {
+      message = text;
+    }
+  }
+
+  throw new Error(message);
+}
