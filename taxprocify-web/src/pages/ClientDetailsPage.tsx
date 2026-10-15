@@ -1,28 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/apiClient";
-
-type Client = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string | null;
-  createdAt: string;
-  userId: string;
-};
-
-type TaxCase = {
-  id: number;
-  taxYear: number;
-  status: string;
-  createdAt: string;
-  clientId: number;
-  requestedDocumentsCount: number;
-  completedDocumentsCount: number;
-  missingDocumentsCount: number;
-  documentProgressPercentage: number;
-};
+import TaxCaseStatusBadge from "../components/TaxCaseStatusBadge";
+import type { Client } from "../types/client";
+import type { TaxCase } from "../types/taxCase";
+import { getClientById, updateClient, deleteClient } from "../api/clients";
+import { getTaxCasesByClient } from "../api/taxCases";
 
 function ClientDetailsPage() {
   // Get the client ID from the URL parameters and set up navigation
@@ -47,32 +30,11 @@ function ClientDetailsPage() {
   useEffect(() => {
     async function loadClient() {
       try {
-        const response = await apiFetch(`/Clients/getclient/${id}`);
-
-        if (response.status === 404) {
-          setError("Client not found.");
-          return;
-        }
-
-        if (!response.ok) {
-          setError("Failed to load client.");
-          return;
-        }
-
-        const data: Client = await response.json();
+        const data = await getClientById(id!);
 
         setClient(data);
 
-        const taxCaseResponse = await apiFetch(
-          `/TaxCases/gettaxcases/client/${id}`,
-        );
-
-        if (!taxCaseResponse.ok) {
-          setError("Failed to load tax cases.");
-          return;
-        }
-
-        const taxCaseData: TaxCase[] = await taxCaseResponse.json();
+        const taxCaseData = await getTaxCasesByClient(id!);
 
         setTaxCases(taxCaseData);
       } catch (error) {
@@ -111,37 +73,15 @@ function ClientDetailsPage() {
     setSaving(true);
 
     try {
-      const response = await apiFetch(`/Clients/updateclient/${client.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          firstName: editFirstName,
-          lastName: editLastName,
-          email: editEmail,
-          phone: editPhone || null,
-        }),
+      const updatedClient = await updateClient(client.id, {
+        firstName: editFirstName,
+        lastName: editLastName,
+        email: editEmail,
+        phone: editPhone || null,
       });
 
-      if (!response.ok) {
-        const text = await response.text();
-
-        if (text) {
-          try {
-            const data = JSON.parse(text);
-            setEditError(data.message ?? "Failed to update client.");
-          } catch {
-            setEditError(text);
-          }
-        } else {
-          setEditError("Failed to update client.");
-        }
-
-        return;
-      }
-
-      const updatedClient: Client = await response.json();
+      setClient(updatedClient);
+      setEditing(false);
 
       setClient(updatedClient);
       setEditing(false);
@@ -168,14 +108,7 @@ function ClientDetailsPage() {
     }
 
     try {
-      const response = await apiFetch(`/Clients/deleteclient/${client.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        setEditError("Failed to delete client.");
-        return;
-      }
+      await deleteClient(client.id);
 
       navigate("/clients");
     } catch (error) {
@@ -412,7 +345,9 @@ function ClientDetailsPage() {
                     >
                       <td className="px-6 py-4">{taxCase.taxYear}</td>
 
-                      <td className="px-6 py-4">{taxCase.status}</td>
+                      <td className="px-6 py-4">
+                        <TaxCaseStatusBadge status={taxCase.status} />
+                      </td>
 
                       <td className="px-6 py-4">
                         {taxCase.missingDocumentsCount}

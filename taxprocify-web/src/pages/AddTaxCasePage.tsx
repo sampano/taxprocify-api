@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { apiFetch } from "../api/apiClient";
-
+//import { apiFetch } from "../api/apiClient";
+import { createTaxCase } from "../api/taxCases";
 function AddTaxCasePage() {
   const { clientId } = useParams();
   const navigate = useNavigate();
@@ -23,23 +23,7 @@ function AddTaxCasePage() {
     setSubmitting(true);
 
     try {
-      const response = await apiFetch(`/TaxCases/createtaxcases/${clientId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          taxYear,
-          status,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-
-        setError(data.message ?? "Failed to create tax case.");
-        return;
-      }
+      await createTaxCase(clientId, taxYear, status);
 
       navigate(`/clients/${clientId}`);
     } catch (error) {

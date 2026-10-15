@@ -1,22 +1,8 @@
 import { useEffect, useState } from "react";
-import { apiFetch } from "../api/apiClient";
+//import { apiFetch } from "../api/apiClient";
 import { useNavigate } from "react-router-dom";
-
-type Client = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-};
-
-type PagedClients = {
-  items: Client[];
-  page: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-};
+import type { Client, PagedClients } from "../types/client";
+import { getClients } from "../api/clients";
 
 function ClientsPage() {
   // State variables for clients, error, and loading state
@@ -39,30 +25,14 @@ function ClientsPage() {
     setError("");
 
     try {
-      const params = new URLSearchParams();
-
-      if (search.trim()) {
-        params.set("search", search.trim());
-      }
-
-      params.set("page", page.toString());
-      params.set("pageSize", pageSize.toString());
-
-      const response = await apiFetch(`/Clients?${params.toString()}`);
-
-      if (!response.ok) {
-        setError("Failed to load clients.");
-        return;
-      }
-
-      const data: PagedClients = await response.json();
+      const data = await getClients(search, page, pageSize);
 
       setClients(data.items);
       setTotalPages(data.totalPages);
       setTotalCount(data.totalCount);
     } catch (error) {
       console.error(error);
-      setError("Unable to connect to the server.");
+      setError("Unable to load clients.");
     } finally {
       setLoading(false);
     }

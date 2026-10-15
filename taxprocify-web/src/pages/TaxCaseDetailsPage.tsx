@@ -1,14 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { apiFetch } from "../api/apiClient";
-
-type MissingDocument = {
-  id: number;
-  documentTypeId: number;
-  documentType: string;
-  documentCategory: string;
-  note: string | null;
-};
+//import { apiFetch } from "../api/apiClient";
+import TaxCaseStatusBadge from "../components/TaxCaseStatusBadge";
+import type { TaxCaseSummary } from "../types/taxCase";
+import type { DocumentCategory } from "../types/document";
+import {
+  getTaxCaseSummary,
+  updateTaxCase,
+  deleteTaxCase,
+} from "../api/taxCases";
+import {
+  getDocumentCategories,
+  downloadTaxDocument,
+  deleteTaxDocument,
+  uploadTaxDocument,
+} from "../api/documents";
+import {
+  createDocumentRequest,
+  updateDocumentRequestNote,
+  deleteDocumentRequest,
+} from "../api/documentRequests";
 
 type RecentDocument = {
   id: number;
@@ -18,29 +29,9 @@ type RecentDocument = {
   uploadedAt: string;
 };
 
-type TaxCaseSummary = {
-  id: number;
-  clientId: number;
-  taxYear: number;
-  status: string;
-  requestedDocumentsCount: number;
-  completedDocumentsCount: number;
-  missingDocumentsCount: number;
-  documentProgressPercentage: number;
-  missingDocuments: MissingDocument[];
-  recentDocuments: RecentDocument[];
-};
-
-type DocumentType = {
-  id: number;
-  name: string;
-};
-
-type DocumentCategory = {
-  id: number;
-  name: string;
-  documentTypes: DocumentType[];
-};
+function formatStatus(status: string) {
+  return status.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
 
 function TaxCaseDetailsPage() {
   // Get the tax case ID from the URL parameters
@@ -52,6 +43,8 @@ function TaxCaseDetailsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State for editing document requests
   const [editingRequestId, setEditingRequestId] = useState<number | null>(null);
@@ -81,13 +74,7 @@ function TaxCaseDetailsPage() {
 
   async function loadDocumentCategories() {
     try {
-      const response = await apiFetch("/Documents/tax-document/categories");
-
-      if (!response.ok) {
-        return;
-      }
-
-      const data: DocumentCategory[] = await response.json();
+      const data = await getDocumentCategories();
 
       setDocumentCategories(data);
     } catch (error) {
@@ -98,19 +85,8 @@ function TaxCaseDetailsPage() {
   // Function to load tax case details
   async function loadTaxCase() {
     try {
-      const response = await apiFetch(`/TaxCases/${id}/summary`);
+      const data = await getTaxCaseSummary(id!);
 
-      if (response.status === 404) {
-        setError("Tax case not found.");
-        return;
-      }
-
-      if (!response.ok) {
-        setError("Failed to load tax case.");
-        return;
-      }
-
-      const data: TaxCaseSummary = await response.json();
       console.log("Missing documents:", data.missingDocuments);
 
       setTaxCase(data);
@@ -140,30 +116,16 @@ function TaxCaseDetailsPage() {
     setUploading(true);
 
     try {
-      const formData = new FormData();
-
-      formData.append("File", selectedFile);
-      formData.append("DocumentTypeId", selectedDocumentTypeId);
-
-      const response = await apiFetch(
-        `/Documents/tax-document/upload/${taxCase.id}`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
-
-      if (!response.ok) {
-        const message = await response.text();
-
-        setUploadError(message || "Failed to upload document.");
-        return;
-      }
+      await uploadTaxDocument(taxCase.id, selectedFile, selectedDocumentTypeId);
 
       await loadTaxCase();
 
       setSelectedDocumentTypeId("");
       setSelectedFile(null);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (error) {
       console.error(error);
       setUploadError("Unable to upload document.");
@@ -175,16 +137,7 @@ function TaxCaseDetailsPage() {
   // Function for downloading and deleting documents
   async function handleDownload(documentId: number, fileName: string) {
     try {
-      const response = await apiFetch(
-        `/Documents/tax-document/download/${documentId}`,
-      );
-
-      if (!response.ok) {
-        setError("Failed to download document.");
-        return;
-      }
-
-      const blob = await response.blob();
+      const blob = await downloadTaxDocument(documentId);
 
       const url = window.URL.createObjectURL(blob);
 
@@ -213,17 +166,7 @@ function TaxCaseDetailsPage() {
     }
 
     try {
-      const response = await apiFetch(
-        `/Documents/tax-document/delete/${documentId}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      if (!response.ok) {
-        setError("Failed to delete document.");
-        return;
-      }
+      await deleteTaxDocument(documentId);
 
       await loadTaxCase();
     } catch (error) {
@@ -247,87 +190,34 @@ function TaxCaseDetailsPage() {
     setRequestSubmitting(true);
 
     try {
-      console.log("Tax case ID:", taxCase.id);
-      console.log(
-        "Request endpoint:",
-        `/DocumentRequests/create/${taxCase.id}`,
+      await createDocumentRequest(
+        taxCase.id,
+        Number(requestDocumentTypeId),
+        requestNote || null,
       );
-      console.log("Creating document request...");
-
-      const response = await apiFetch(
-        `/DocumentRequests/create/${taxCase.id}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            documentTypeId: Number(requestDocumentTypeId),
-            note: requestNote || null,
-          }),
-        },
-      );
-
-      console.log("Create request status:", response.status);
-
-      if (!response.ok) {
-        const text = await response.text();
-
-        console.log("Create request error body:", text);
-
-        if (text) {
-          try {
-            const data = JSON.parse(text);
-            setRequestError(data.message ?? "Failed to add required document.");
-          } catch {
-            setRequestError(text);
-          }
-        } else {
-          setRequestError("Failed to add required document.");
-        }
-
-        return;
-      }
-
-      console.log("Document request created successfully.");
 
       setRequestDocumentTypeId("");
       setRequestNote("");
 
-      console.log("Reloading tax case...");
       await loadTaxCase();
-
-      console.log("Tax case reloaded.");
     } catch (error) {
-      console.error("Add document request error:", error);
-      setRequestError("Unable to add required document.");
+      console.error(error);
+
+      setRequestError(
+        error instanceof Error
+          ? error.message
+          : "Unable to add required document.",
+      );
     } finally {
       setRequestSubmitting(false);
     }
   }
-
   // Functions for editing and deleting document requests
   async function handleUpdateRequestNote(documentRequestId: number) {
     setRequestActionError("");
 
     try {
-      const response = await apiFetch(
-        `/DocumentRequests/update/${documentRequestId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            note: editingNote || null,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        setRequestActionError("Failed to update note.");
-        return;
-      }
+      await updateDocumentRequestNote(documentRequestId, editingNote || null);
 
       setEditingRequestId(null);
       setEditingNote("");
@@ -352,17 +242,7 @@ function TaxCaseDetailsPage() {
     setRequestActionError("");
 
     try {
-      const response = await apiFetch(
-        `/DocumentRequests/delete/${documentRequestId}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      if (!response.ok) {
-        setRequestActionError("Failed to remove required document.");
-        return;
-      }
+      await deleteDocumentRequest(documentRequestId);
 
       await loadTaxCase();
     } catch (error) {
@@ -395,44 +275,17 @@ function TaxCaseDetailsPage() {
     setSavingTaxCase(true);
 
     try {
-      const response = await apiFetch(
-        `/TaxCases/updatetaxcases/${taxCase.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            taxYear: editTaxYear,
-            status: editStatus,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        const text = await response.text();
-
-        if (text) {
-          try {
-            const data = JSON.parse(text);
-
-            setTaxCaseEditError(data.message ?? "Failed to update tax case.");
-          } catch {
-            setTaxCaseEditError(text);
-          }
-        } else {
-          setTaxCaseEditError("Failed to update tax case.");
-        }
-
-        return;
-      }
+      await updateTaxCase(taxCase.id, editTaxYear, editStatus);
 
       setEditingTaxCase(false);
 
       await loadTaxCase();
     } catch (error) {
       console.error(error);
-      setTaxCaseEditError("Unable to update tax case.");
+
+      setTaxCaseEditError(
+        error instanceof Error ? error.message : "Unable to update tax case.",
+      );
     } finally {
       setSavingTaxCase(false);
     }
@@ -453,24 +306,18 @@ function TaxCaseDetailsPage() {
     }
 
     try {
-      const response = await apiFetch(
-        `/TaxCases/deletetaxcases/${taxCase.id}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      if (!response.ok) {
-        setTaxCaseEditError("Failed to delete tax case.");
-        return;
-      }
+      await deleteTaxCase(taxCase.id);
 
       navigate(`/clients/${taxCase.clientId}`);
     } catch (error) {
       console.error(error);
-      setTaxCaseEditError("Unable to delete tax case.");
+
+      setTaxCaseEditError(
+        error instanceof Error ? error.message : "Unable to delete tax case.",
+      );
     }
   }
+
   if (!taxCase) {
     return null;
   }
@@ -499,9 +346,7 @@ function TaxCaseDetailsPage() {
               </h1>
             </div>
 
-            <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
-              {currentTaxCase.status}
-            </span>
+            <TaxCaseStatusBadge status={currentTaxCase.status} />
           </div>
 
           <div className="flex gap-2">
@@ -858,6 +703,7 @@ function TaxCaseDetailsPage() {
                 </label>
 
                 <input
+                  ref={fileInputRef}
                   id="file"
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiFetch } from "../api/apiClient";
+//import { apiFetch } from "../api/apiClient";
+import { createClient } from "../api/clients";
 
 function AddClientPage() {
   const navigate = useNavigate();
@@ -19,25 +20,12 @@ function AddClientPage() {
     setSubmitting(true);
 
     try {
-      const response = await apiFetch("/Clients/createclient", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          email,
-          phone: phone || null,
-        }),
+      await createClient({
+        firstName,
+        lastName,
+        email,
+        phone: phone || null,
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-
-        setError(data.message ?? "Failed to create client.");
-        return;
-      }
 
       navigate("/clients");
     } catch (error) {

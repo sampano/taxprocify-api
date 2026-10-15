@@ -1,34 +1,20 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { getUserIdFromToken } from "../auth/jwt";
-import { API_URL } from "../api/config";
+import { login } from "../api/auth";
 
 function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
+  const [error, setError] = useState("");
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     try {
-      const response = await fetch(`${API_URL}/Auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username,
-          password: password,
-        }),
-      });
-
-      if (!response.ok) {
-        console.log("Login failed");
-        return;
-      }
-
-      const data = await response.json();
+      const data = await login(username, password);
 
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
@@ -41,11 +27,14 @@ function LoginPage() {
 
       navigate("/dashboard");
 
-      console.log("Login successful");
-
-      console.log("Login response:", data);
+      //console.log("Login successful");
     } catch (error) {
       console.error("Login error:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Invalid username or password.",
+      );
     }
   }
 
@@ -57,7 +46,11 @@ function LoginPage() {
 
           <p className="mt-2 text-sm text-gray-500">Sign in to your account</p>
         </div>
-
+        {error && (
+          <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+            {error}
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label

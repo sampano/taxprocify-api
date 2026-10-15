@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/apiClient";
+import TaxCaseStatusBadge from "../components/TaxCaseStatusBadge";
+import type { DashboardSummary } from "../types/dashboard";
+import { getDashboardSummary } from "../api/dashboard";
 
 type CaseAttention = {
   taxCaseId: number;
@@ -23,20 +26,6 @@ type RecentActivity = {
 type TaxCaseStatusCount = {
   status: string;
   count: number;
-};
-
-type DashboardSummary = {
-  totalClients: number;
-  totalTaxCases: number;
-  waitingForDocumentsCount: number;
-  completedTaxCasesCount: number;
-  totalRequestedDocuments: number;
-  totalCompletedDocuments: number;
-  totalMissingDocuments: number;
-  overallDocumentProgressPercentage: number;
-  casesNeedingAttention: CaseAttention[];
-  recentActivity: RecentActivity[];
-  taxCaseStatusBreakdown: TaxCaseStatusCount[];
 };
 
 function DashboardPage() {
@@ -62,24 +51,22 @@ function DashboardPage() {
       }
 
       try {
-        const response = await apiFetch("/Dashboard/summary");
-
-        if (response.status === 401) {
-          navigate("/login");
-          return;
-        }
-
-        if (!response.ok) {
-          setError("Failed to load dashboard.");
-          return;
-        }
-
-        const data: DashboardSummary = await response.json();
+        const data = await getDashboardSummary();
 
         setDashboard(data);
       } catch (error) {
         console.error(error);
-        setError("Unable to connect to the server.");
+
+        if (error instanceof Error && error.message === "UNAUTHORIZED") {
+          navigate("/login");
+          return;
+        }
+
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Unable to connect to the server.",
+        );
       }
     }
 
@@ -171,19 +158,30 @@ function DashboardPage() {
             </thead>
 
             <tbody>
-              {dashboard.casesNeedingAttention.map((item) => (
-                <tr
-                  key={item.taxCaseId}
-                  onClick={() => navigate(`/tax-cases/${item.taxCaseId}`)}
-                  className="cursor-pointer border-t border-gray-200 hover:bg-gray-50"
-                >
-                  <td className="px-6 py-4">{item.clientName}</td>
-
-                  <td className="px-6 py-4">{item.taxYear}</td>
-
-                  <td className="px-6 py-4">{item.missingDocumentsCount}</td>
+              {dashboard.casesNeedingAttention.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-6 py-8 text-center text-sm text-gray-500"
+                  >
+                    No cases currently need attention.
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                dashboard.casesNeedingAttention.map((item) => (
+                  <tr
+                    key={item.taxCaseId}
+                    onClick={() => navigate(`/tax-cases/${item.taxCaseId}`)}
+                    className="cursor-pointer border-t border-gray-200 hover:bg-gray-50"
+                  >
+                    <td className="px-6 py-4">{item.clientName}</td>
+
+                    <td className="px-6 py-4">{item.taxYear}</td>
+
+                    <td className="px-6 py-4">{item.missingDocumentsCount}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -195,24 +193,34 @@ function DashboardPage() {
         </h2>
 
         <div className="space-y-3">
-          {dashboard.recentActivity.map((activity) => (
-            <div
-              key={activity.documentId}
-              className="rounded-xl bg-white p-5 shadow"
-            >
-              <p className="font-medium text-gray-900">{activity.clientName}</p>
-
-              <p className="text-sm text-gray-600">
-                Uploaded {activity.fileName}
-                {activity.documentType ? ` (${activity.documentType})` : ""}
-              </p>
-
-              <p className="mt-1 text-xs text-gray-400">
-                Tax Year {activity.taxYear} ·{" "}
-                {new Date(activity.uploadedAt).toLocaleString()}
-              </p>
+          {dashboard.recentActivity.length === 0 ? (
+            <div className="rounded-xl bg-white p-6 text-center shadow">
+              <p className="text-gray-500">No recent document activity.</p>
             </div>
-          ))}
+          ) : (
+            <div className="space-y-3">
+              {dashboard.recentActivity.map((activity) => (
+                <div
+                  key={activity.documentId}
+                  className="rounded-xl bg-white p-5 shadow"
+                >
+                  <p className="font-medium text-gray-900">
+                    {activity.clientName}
+                  </p>
+
+                  <p className="text-sm text-gray-600">
+                    Uploaded {activity.fileName}
+                    {activity.documentType ? ` (${activity.documentType})` : ""}
+                  </p>
+
+                  <p className="mt-1 text-xs text-gray-400">
+                    Tax Year {activity.taxYear} ·{" "}
+                    {new Date(activity.uploadedAt).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -225,7 +233,10 @@ function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {dashboard.taxCaseStatusBreakdown.map((item) => (
             <div key={item.status} className="rounded-xl bg-white p-5 shadow">
-              <p className="text-sm text-gray-500">{item.status}</p>
+              <p className="text-sm text-gray-500">
+                {" "}
+                <TaxCaseStatusBadge status={item.status} />
+              </p>
 
               <p className="mt-2 text-2xl font-bold">{item.count}</p>
             </div>

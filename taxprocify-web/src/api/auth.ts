@@ -35,3 +35,38 @@ export async function refreshAccessToken(): Promise<string | null> {
 
   return data.accessToken;
 }
+
+export async function login(
+  username: string,
+  password: string,
+): Promise<TokenResponse> {
+  const response = await fetch(`${API_URL}/Auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      username,
+      password,
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+
+    let message = "Login failed.";
+
+    if (text) {
+      try {
+        const data = JSON.parse(text);
+        message = data.message ?? text;
+      } catch {
+        message = text;
+      }
+    }
+
+    throw new Error(message);
+  }
+
+  return response.json();
+}
