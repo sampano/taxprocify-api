@@ -1,5 +1,6 @@
 ﻿using JwtAuth.Dtos;
 using JwtAuth.Dtos.Clients;
+using JwtAuth.Dtos.TaxCases;
 
 namespace JwtAuth.Services
 {
@@ -15,5 +16,13 @@ namespace JwtAuth.Services
 
         Task<bool> DeleteClientAsync(int id, Guid userId);
         //Task ListClientsAsync();
+
+        Task<bool> AssignPortalUserAsync(int clientId, Guid portalUserId, Guid adminUserId);
+
+        Task<ClientDto?> GetClientByPortalUserIdAsync(Guid portalUserId);
+
+        Task<List<TaxCaseDto>> GetPortalTaxCasesAsync(Guid portalUserId);
+
+        Task<TaxCaseSummaryDto?> GetPortalTaxCaseSummaryAsync(int taxCaseId, Guid portalUserId);
     }
 }

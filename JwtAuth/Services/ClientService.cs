@@ -1,6 +1,7 @@
 ﻿using JwtAuth.Data;
 using JwtAuth.Dtos;
 using JwtAuth.Dtos.Clients;
+using JwtAuth.Dtos.TaxCases;
 using JwtAuth.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -196,6 +197,173 @@ namespace JwtAuth.Services
             await _context.SaveChangesAsync();
 
             return true;
+        }
+
+        public async Task<bool> AssignPortalUserAsync(int clientId, Guid portalUserId, Guid adminUserId)
+        {
+            Client? client = await _context.Clients
+                .FirstOrDefaultAsync(client =>
+                    client.Id == clientId &&
+                    client.UserId == adminUserId);
+
+            if (client is null)
+            {
+                return false;
+            }
+
+            User? portalUser = await _context.Users
+                .FirstOrDefaultAsync(user =>
+                    user.Id == portalUserId &&
+                    user.Role == "Client");
+
+            if (portalUser is null)
+            {
+                throw new InvalidOperationException(
+                    "Client portal user not found.");
+            }
+
+            client.PortalUserId = portalUser.Id;
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<ClientDto?> GetClientByPortalUserIdAsync(Guid portalUserId)
+        {
+            Client? client = await _context.Clients
+                .FirstOrDefaultAsync(client =>
+                    client.PortalUserId == portalUserId);
+
+            if (client is null)
+            {
+                return null;
+            }
+
+            return new ClientDto
+            {
+                Id = client.Id,
+                FirstName = client.FirstName,
+                LastName = client.LastName,
+                Email = client.Email,
+                Phone = client.Phone,
+                CreatedAt = client.CreatedAt,
+                UserId = client.UserId
+            };
+        }
+
+        public async Task<List<TaxCaseDto>> GetPortalTaxCasesAsync(
+    Guid portalUserId)
+        {
+            Client? client = await _context.Clients
+                .FirstOrDefaultAsync(client =>
+                    client.PortalUserId == portalUserId);
+
+            if (client is null)
+            {
+                return [];
+            }
+
+            return await _context.TaxCases
+                .Where(taxCase => taxCase.ClientId == client.Id)
+                .Select(taxCase => new TaxCaseDto
+                {
+                    Id = taxCase.Id,
+                    TaxYear = taxCase.TaxYear,
+                    Status = taxCase.Status,
+                    CreatedAt = taxCase.CreatedAt,
+                    ClientId = taxCase.ClientId,
+                    RequestedDocumentsCount =
+                        taxCase.DocumentRequests.Count,
+                    CompletedDocumentsCount =
+                        taxCase.DocumentRequests.Count(request => request.IsCompleted),
+                    MissingDocumentsCount =
+                        taxCase.DocumentRequests.Count(request => !request.IsCompleted),
+                    DocumentProgressPercentage =
+                        taxCase.DocumentRequests.Count == 0
+                            ? 0
+                            : (double)taxCase.DocumentRequests.Count(request => request.IsCompleted)
+                              / taxCase.DocumentRequests.Count * 100
+                })
+                .ToListAsync();
+        }
+
+        public async Task<TaxCaseSummaryDto?> GetPortalTaxCaseSummaryAsync(int taxCaseId, Guid portalUserId)
+        {
+            Client? client = await _context.Clients
+                .FirstOrDefaultAsync(client =>
+                    client.PortalUserId == portalUserId);
+
+            if (client is null)
+            {
+                return null;
+            }
+
+            TaxCase? taxCase = await _context.TaxCases
+                .Include(taxCase => taxCase.DocumentRequests)
+                    .ThenInclude(request => request.DocumentType)
+                        .ThenInclude(type => type.DocumentCategory)
+                .Include(taxCase => taxCase.Documents)
+                    .ThenInclude(document => document.DocumentType)
+                        .ThenInclude(type => type.DocumentCategory)
+                .FirstOrDefaultAsync(taxCase =>
+                    taxCase.Id == taxCaseId &&
+                    taxCase.ClientId == client.Id);
+
+            if (taxCase is null)
+            {
+                return null;
+            }
+
+            int requestedCount = taxCase.DocumentRequests.Count;
+            int completedCount = taxCase.DocumentRequests.Count(request => request.IsCompleted);
+            int missingCount = taxCase.DocumentRequests.Count(request => !request.IsCompleted);
+
+            double progress =
+                requestedCount == 0
+                    ? 0
+                    : (double)completedCount / requestedCount * 100;
+
+            return new TaxCaseSummaryDto
+            {
+                Id = taxCase.Id,
+                ClientId = taxCase.ClientId,
+                TaxYear = taxCase.TaxYear,
+                Status = taxCase.Status,
+                RequestedDocumentsCount = requestedCount,
+                CompletedDocumentsCount = completedCount,
+                MissingDocumentsCount = missingCount,
+                DocumentProgressPercentage = progress,
+
+                MissingDocuments = taxCase.DocumentRequests
+                    .Where(request => !request.IsCompleted)
+                    .Select(request => new DocumentRequestSummaryDto
+                    {
+                        Id = request.Id,
+                        DocumentTypeId = request.DocumentTypeId,
+                        DocumentType = request.DocumentType.Name,
+                        DocumentCategory = request.DocumentType.DocumentCategory.Name,
+                        Note = request.Note
+                    })
+                    .ToList(),
+
+                RecentDocuments = taxCase.Documents
+                    .OrderByDescending(document => document.UploadedAt)
+                    .Take(5)
+                    .Select(document => new RecentDocumentDto
+                    {
+                        Id = document.Id,
+                        FileName = document.FileName,
+                        DocumentType = document.DocumentType != null
+                            ? document.DocumentType.Name
+                            : null,
+                        DocumentCategory = document.DocumentType != null
+                            ? document.DocumentType.DocumentCategory.Name
+                            : null,
+                        UploadedAt = document.UploadedAt
+                    })
+                    .ToList()
+            };
         }
     }
 }

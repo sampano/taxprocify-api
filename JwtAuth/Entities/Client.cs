@@ -20,5 +20,10 @@
         public User User { get; set; } = null!;
 
         public List<TaxCase> TaxCases { get; set; } = [];
+
+        // Link between a client record and the client's own login account
+        public Guid? PortalUserId { get; set; }
+
+        public User? PortalUser { get; set; }
     }
 }

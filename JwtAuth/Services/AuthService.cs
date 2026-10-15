@@ -51,10 +51,15 @@ namespace JwtAuth.Services
                 return null;
             }
 
-            var user = new User();
+            var user = new User
+            {
+                Email = request.Email,
+                Role = "Client"
+            };
+
             var hashedPassword = new PasswordHasher<User>()
-               .HashPassword(user, request.Password);
-            user.Email = request.Email;
+                .HashPassword(user, request.Password);
+
             user.PasswordHash = hashedPassword;
 
             context.Users.Add(user);

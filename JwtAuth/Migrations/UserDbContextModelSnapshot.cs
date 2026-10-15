@@ -48,10 +48,15 @@ namespace JwtAuth.Migrations
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("PortalUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PortalUserId");
 
                     b.HasIndex("UserId");
 
@@ -340,11 +345,18 @@ namespace JwtAuth.Migrations
 
             modelBuilder.Entity("JwtAuth.Entities.Client", b =>
                 {
+                    b.HasOne("JwtAuth.Entities.User", "PortalUser")
+                        .WithMany()
+                        .HasForeignKey("PortalUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("JwtAuth.Entities.User", "User")
                         .WithMany("Clients")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.Navigation("PortalUser");
 
                     b.Navigation("User");
                 });

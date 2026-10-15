@@ -9,7 +9,7 @@ namespace JwtAuth.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class DashboardController : ControllerBase
     {
         private readonly IDashboardService _dashboardService;

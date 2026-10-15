@@ -18,6 +18,20 @@ namespace JwtAuth.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Admin/Tax Professional who owns the client
+            modelBuilder.Entity<Client>()
+                .HasOne(client => client.User)
+                .WithMany(user => user.Clients)
+                .HasForeignKey(client => client.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Client's own portal login account
+            modelBuilder.Entity<Client>()
+                .HasOne(client => client.PortalUser)
+                .WithMany()
+                .HasForeignKey(client => client.PortalUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+            
             modelBuilder.Entity<TaxCase>()
                 .Property(taxCase => taxCase.Status)
                 .HasConversion<string>();

@@ -1,5 +1,6 @@
 ﻿using JwtAuth.Data;
 using JwtAuth.Dtos.Dashboard;
+using JwtAuth.Entities;
 using JwtAuth.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -126,5 +127,7 @@ namespace JwtAuth.Services
                 TaxCaseStatusBreakdown = taxCaseStatusBreakdown
             };
         }
+
+        
     }
 }

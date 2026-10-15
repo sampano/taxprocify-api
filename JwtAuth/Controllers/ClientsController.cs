@@ -2,7 +2,6 @@
 using JwtAuth.Dtos.Clients;
 using JwtAuth.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -10,7 +9,7 @@ namespace JwtAuth.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class ClientsController : ControllerBase
     {
         private readonly IClientService _clientService;
@@ -133,6 +132,35 @@ namespace JwtAuth.Controllers
             return NoContent();
         }
 
+        
+        [HttpPut("{clientId}/portal-user/{userId}")]
+        //
+        public async Task<IActionResult> AssignPortalUser(int clientId,Guid userId)
+        {
+            Guid adminUserId = GetCurrentUserId();
+
+            try
+            {
+                bool assigned = await _clientService.AssignPortalUserAsync(
+                    clientId,
+                    userId,
+                    adminUserId);
+
+                if (!assigned)
+                {
+                    return NotFound("Client not found.");
+                }
+
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
 
     }
 }

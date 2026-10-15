@@ -15,5 +15,13 @@ namespace JwtAuth.Services
 
         Task<List<DocumentCategoryDto>> GetDocumentCategoriesAsync();
 
+        Task<DocumentDto?> UploadPortalDocumentAsync(int taxCaseId, IFormFile file, int documentTypeId, Guid portalUserId);
+
+        Task<DownloadDocumentDto?> GetPortalDocumentForDownloadAsync(int documentId, Guid portalUserId);
+
+        Task<List<DocumentDto>> GetPortalDocumentsByTaxCaseAsync(int taxCaseId, Guid portalUserId);
+
+        Task<bool> DeletePortalDocumentAsync(int documentId, Guid portalUserId);
+
     }
 }
