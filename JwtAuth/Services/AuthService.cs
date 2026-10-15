@@ -17,7 +17,7 @@ namespace JwtAuth.Services
     {
         public async Task<TokenResponseDto?> LoginAsync(UserDto request)
         {
-            var user = await context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user is null)
             {
                 return null;
@@ -46,7 +46,7 @@ namespace JwtAuth.Services
 
         public async Task<User?> RegisterAsync(UserDto request)
         {
-            if (await context.Users.AnyAsync(u => u.Username == request.Username))
+            if (await context.Users.AnyAsync(u => u.Email == request.Email))
             {
                 return null;
             }
@@ -54,7 +54,7 @@ namespace JwtAuth.Services
             var user = new User();
             var hashedPassword = new PasswordHasher<User>()
                .HashPassword(user, request.Password);
-            user.Username = request.Username;
+            user.Email = request.Email;
             user.PasswordHash = hashedPassword;
 
             context.Users.Add(user);
@@ -107,7 +107,7 @@ namespace JwtAuth.Services
         {
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Name, user.Email),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Role, user.Role)
             };

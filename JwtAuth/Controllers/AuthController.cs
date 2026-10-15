@@ -24,7 +24,7 @@ namespace JwtAuth.Controllers
             var user = await authService.RegisterAsync(request);
             if(user is null)
             {
-                return BadRequest("Username already  exists.");
+                return BadRequest("Email already  exists.");
             }
             return Ok(user);
         }
@@ -35,7 +35,7 @@ namespace JwtAuth.Controllers
             var result = await authService.LoginAsync(request);
             if (result is null)
             {
-                return BadRequest("Invalid username or password.");
+                return BadRequest("Invalid email or password.");
             }    
 
             return Ok(result);
