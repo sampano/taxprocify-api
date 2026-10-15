@@ -68,5 +68,38 @@ namespace JwtAuth.Services
 
             await _resend.EmailSendAsync(message);
         }
+
+        public async Task SendDocumentRequestCreatedAsync(string email, int taxYear, string documentType, string? note)
+        {
+            var message = new EmailMessage
+            {
+                From = "onboarding@resend.dev",
+                To = email,
+                Subject = $"New document requested for your {taxYear} tax case",
+                HtmlBody = $"""
+            <h2>New document requested</h2>
+
+            <p>
+                A new document has been requested for your
+                {taxYear} TaxProcify tax case.
+            </p>
+
+            <p>
+                <strong>Document:</strong> {documentType}
+            </p>
+
+            {(string.IsNullOrWhiteSpace(note)
+                        ? ""
+                        : $"<p><strong>Note:</strong> {note}</p>")}
+
+            <p>
+                Please log in to your TaxProcify client portal
+                to review the request and upload the document.
+            </p>
+            """
+            };
+
+            await _resend.EmailSendAsync(message);
+        }
     }
 }

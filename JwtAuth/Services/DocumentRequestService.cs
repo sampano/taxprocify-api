@@ -8,10 +8,12 @@ namespace JwtAuth.Services
     public class DocumentRequestService : IDocumentRequestService
     {
         private readonly AppDbContext _context;
+        private readonly IEmailService _emailService;
 
-        public DocumentRequestService(AppDbContext context)
+        public DocumentRequestService(AppDbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         public async Task<DocumentRequestDto?> CreateDocumentRequestAsync(
@@ -20,6 +22,7 @@ namespace JwtAuth.Services
             Guid userId)
         {
             TaxCase? taxCase = await _context.TaxCases
+                .Include(taxCase => taxCase.Client)
                 .FirstOrDefaultAsync(taxCase =>
                     taxCase.Id == taxCaseId &&
                     taxCase.Client.UserId == userId);
@@ -65,6 +68,12 @@ namespace JwtAuth.Services
             _context.DocumentRequests.Add(documentRequest);
 
             await _context.SaveChangesAsync();
+
+            await _emailService.SendDocumentRequestCreatedAsync(
+                taxCase.Client.Email,
+                taxCase.TaxYear,
+                documentType.Name,
+                request.Note);
 
             return new DocumentRequestDto
             {
