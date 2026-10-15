@@ -56,7 +56,9 @@ namespace JwtAuth.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PortalUserId");
+                    b.HasIndex("PortalUserId")
+                        .IsUnique()
+                        .HasFilter("[PortalUserId] IS NOT NULL");
 
                     b.HasIndex("UserId");
 

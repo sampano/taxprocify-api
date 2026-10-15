@@ -18,5 +18,7 @@ namespace JwtAuth.Dtos.Clients
 
         public Guid UserId { get; set; }
 
+        public Guid? PortalUserId { get; set; }
+
     }
 }

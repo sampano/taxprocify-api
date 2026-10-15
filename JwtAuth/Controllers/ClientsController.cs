@@ -162,5 +162,33 @@ namespace JwtAuth.Controllers
             }
         }
 
+
+        [HttpPost("{clientId}/portal-account")]
+        public async Task<IActionResult> CreatePortalAccount(int clientId, CreatePortalAccountDto request)
+        {
+            Guid adminUserId = GetCurrentUserId();
+
+            try
+            {
+                bool created = await _clientService.CreatePortalAccountAsync(
+                    clientId,
+                    request.Password,
+                    adminUserId);
+
+                if (!created)
+                {
+                    return NotFound("Client not found.");
+                }
+
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

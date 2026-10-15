@@ -3,6 +3,7 @@ using JwtAuth.Dtos;
 using JwtAuth.Dtos.Clients;
 using JwtAuth.Dtos.TaxCases;
 using JwtAuth.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace JwtAuth.Services
@@ -47,7 +48,8 @@ namespace JwtAuth.Services
                     Email = client.Email,
                     Phone = client.Phone,
                     CreatedAt = client.CreatedAt,
-                    UserId = client.UserId
+                    UserId = client.UserId,
+                    PortalUserId = client.PortalUserId
                 })
                 .ToListAsync();
 
@@ -85,7 +87,9 @@ namespace JwtAuth.Services
                 Email = client.Email,
                 Phone = client.Phone,
                 CreatedAt = client.CreatedAt,
-                UserId = client.UserId
+                UserId = client.UserId,
+                PortalUserId = client.PortalUserId
+
             };
         }
 
@@ -126,8 +130,9 @@ namespace JwtAuth.Services
                 Email = client.Email,
                 Phone = client.Phone,
                 CreatedAt = client.CreatedAt,
-                UserId = client.UserId
-                
+                UserId = client.UserId,
+                PortalUserId = client.PortalUserId
+
             };
         }
 
@@ -175,7 +180,8 @@ namespace JwtAuth.Services
                 Email = client.Email,
                 Phone = client.Phone,
                 CreatedAt = client.CreatedAt,
-                UserId = client.UserId
+                UserId = client.UserId,
+                PortalUserId = client.PortalUserId
             };
         }
 
@@ -209,6 +215,17 @@ namespace JwtAuth.Services
             if (client is null)
             {
                 return false;
+            }
+
+            bool alreadyAssigned = await _context.Clients
+                .AnyAsync(client =>
+                    client.PortalUserId == portalUserId &&
+                    client.Id != clientId);
+
+            if (alreadyAssigned)
+            {
+                throw new InvalidOperationException(
+                    "This portal user is already assigned to another client.");
             }
 
             User? portalUser = await _context.Users
@@ -248,7 +265,8 @@ namespace JwtAuth.Services
                 Email = client.Email,
                 Phone = client.Phone,
                 CreatedAt = client.CreatedAt,
-                UserId = client.UserId
+                UserId = client.UserId,
+                PortalUserId = client.PortalUserId
             };
         }
 
@@ -364,6 +382,51 @@ namespace JwtAuth.Services
                     })
                     .ToList()
             };
+        }
+
+        public async Task<bool> CreatePortalAccountAsync(int clientId, string password, Guid adminUserId)
+        {
+            Client? client = await _context.Clients
+                .FirstOrDefaultAsync(client =>
+                    client.Id == clientId &&
+                    client.UserId == adminUserId);
+
+            if (client is null)
+            {
+                return false;
+            }
+
+            if (client.PortalUserId is not null)
+            {
+                throw new InvalidOperationException(
+                    "This client already has a portal account.");
+            }
+
+            bool emailExists = await _context.Users
+                .AnyAsync(user => user.Email == client.Email);
+
+            if (emailExists)
+            {
+                throw new InvalidOperationException(
+                    "A user account with this email already exists.");
+            }
+
+            var user = new User
+            {
+                Email = client.Email,
+                Role = "Client"
+            };
+
+            user.PasswordHash = new PasswordHasher<User>()
+                .HashPassword(user, password);
+
+            _context.Users.Add(user);
+
+            client.PortalUserId = user.Id;
+
+            await _context.SaveChangesAsync();
+
+            return true;
         }
     }
 }

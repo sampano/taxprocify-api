@@ -42,6 +42,10 @@ namespace JwtAuth.Data
                 .HasForeignKey(document => document.UploadedByUserId)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            modelBuilder.Entity<Client>()
+                .HasIndex(client => client.PortalUserId)
+                .IsUnique();
+
             modelBuilder.Entity<DocumentCategory>().HasData(
                 new DocumentCategory
                 {

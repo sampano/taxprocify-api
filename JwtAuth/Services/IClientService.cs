@@ -24,5 +24,8 @@ namespace JwtAuth.Services
         Task<List<TaxCaseDto>> GetPortalTaxCasesAsync(Guid portalUserId);
 
         Task<TaxCaseSummaryDto?> GetPortalTaxCaseSummaryAsync(int taxCaseId, Guid portalUserId);
+
+        Task<bool> CreatePortalAccountAsync(int clientId, string password, Guid adminUserId
+);
     }
 }
