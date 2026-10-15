@@ -270,8 +270,7 @@ namespace JwtAuth.Services
             };
         }
 
-        public async Task<List<TaxCaseDto>> GetPortalTaxCasesAsync(
-    Guid portalUserId)
+        public async Task<List<TaxCaseDto>> GetPortalTaxCasesAsync(Guid portalUserId)
         {
             Client? client = await _context.Clients
                 .FirstOrDefaultAsync(client =>
@@ -423,6 +422,25 @@ namespace JwtAuth.Services
             _context.Users.Add(user);
 
             client.PortalUserId = user.Id;
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> UnassignPortalUserAsync(int clientId, Guid adminUserId)
+        {
+            Client? client = await _context.Clients
+                .FirstOrDefaultAsync(client =>
+                    client.Id == clientId &&
+                    client.UserId == adminUserId);
+
+            if (client is null)
+            {
+                return false;
+            }
+
+            client.PortalUserId = null;
 
             await _context.SaveChangesAsync();
 

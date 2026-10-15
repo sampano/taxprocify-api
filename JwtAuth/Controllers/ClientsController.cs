@@ -190,5 +190,22 @@ namespace JwtAuth.Controllers
                 });
             }
         }
+
+        [HttpDelete("{clientId}/portal-user")]
+        public async Task<IActionResult> UnassignPortalUser(int clientId)
+        {
+            Guid adminUserId = GetCurrentUserId();
+
+            bool unassigned = await _clientService.UnassignPortalUserAsync(
+                clientId,
+                adminUserId);
+
+            if (!unassigned)
+            {
+                return NotFound("Client not found.");
+            }
+
+            return NoContent();
+        }
     }
 }
