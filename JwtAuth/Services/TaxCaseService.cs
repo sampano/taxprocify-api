@@ -1,6 +1,7 @@
 ﻿using JwtAuth.Data;
 using JwtAuth.Dtos.TaxCases;
 using JwtAuth.Entities;
+using JwtAuth.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -9,6 +10,7 @@ namespace JwtAuth.Services
     public class TaxCaseService : ITaxCaseService
     {
         private readonly AppDbContext _context;
+        private readonly IEmailService _emailService;
 
         public static readonly Expression<Func<TaxCase, TaxCaseDto>> TaxCaseToDto = taxCase => new TaxCaseDto
         {
@@ -33,9 +35,10 @@ namespace JwtAuth.Services
                     * 100, 2)
         };
 
-        public TaxCaseService(AppDbContext context)
+        public TaxCaseService(AppDbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         public async Task<List<TaxCaseDto>> GetTaxCaseByClientAsync(int clientId, Guid userId)
@@ -118,6 +121,7 @@ namespace JwtAuth.Services
             Guid userId)
         {
             TaxCase? taxCase = await _context.TaxCases
+                .Include(taxCase => taxCase.Client)
                 .FirstOrDefaultAsync(taxCase =>
                     taxCase.Id == id &&
                     taxCase.Client.UserId == userId);
@@ -132,8 +136,7 @@ namespace JwtAuth.Services
             existingTaxCase.TaxYear == request.TaxYear &&
             existingTaxCase.Id != id);
 
-            taxCase.TaxYear = request.TaxYear;
-            taxCase.Status = request.Status;
+           
 
             if (taxCaseExists)
             {
@@ -141,7 +144,20 @@ namespace JwtAuth.Services
                     "A tax case for this tax year already exists.");
             }
 
+            TaxCaseStatus oldStatus = taxCase.Status;
+
+            taxCase.TaxYear = request.TaxYear;
+            taxCase.Status = request.Status;
+
             await _context.SaveChangesAsync();
+
+            if (oldStatus != taxCase.Status)
+            {
+                await _emailService.SendTaxCaseStatusChangedAsync(
+                    taxCase.Client.Email,
+                    taxCase.TaxYear,
+                    taxCase.Status.ToString());
+            }
 
             return new TaxCaseDto
             {

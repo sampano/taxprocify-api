@@ -101,5 +101,65 @@ namespace JwtAuth.Services
 
             await _resend.EmailSendAsync(message);
         }
+
+        public async Task SendTaxCaseStatusChangedAsync(string email, int taxYear, string status)
+        {
+            var message = new EmailMessage
+            {
+                From = "onboarding@resend.dev",
+                To = email,
+                Subject = $"Your {taxYear} Tax Case Status Has Been Updated",
+                HtmlBody = $"""
+            <h2>Your tax case status has been updated</h2>
+
+            <p>
+                The status of your {taxYear} TaxProcify tax case has changed.
+            </p>
+
+            <p>
+                <strong>Current Status:</strong> {status}
+            </p>
+
+            <p>
+                Please log in to your TaxProcify client portal
+                to review your case.
+            </p>
+            """
+            };
+
+            await _resend.EmailSendAsync(message);
+        }
+
+        public async Task SendDocumentUploadedAsync(
+    string email,
+    int taxYear,
+    string documentType)
+        {
+            var message = new EmailMessage
+            {
+                From = "onboarding@resend.dev",
+                To = email,
+                Subject = $"Document received for your {taxYear} tax case",
+                HtmlBody = $"""
+            <h2>Your document was received</h2>
+
+            <p>
+                We successfully received your document for your
+                {taxYear} TaxProcify tax case.
+            </p>
+
+            <p>
+                <strong>Document:</strong> {documentType}
+            </p>
+
+            <p>
+                No further action is required for this document
+                unless your tax professional contacts you.
+            </p>
+            """
+            };
+
+            await _resend.EmailSendAsync(message);
+        }
     }
 }

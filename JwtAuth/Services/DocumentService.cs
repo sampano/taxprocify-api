@@ -11,13 +11,16 @@ namespace JwtAuth.Services
     {
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _environment;
+        private readonly IEmailService _emailService;
+
 
         public DocumentService(
             AppDbContext context,
-            IWebHostEnvironment environment )
+            IWebHostEnvironment environment, IEmailService emailService)
         {
             _context = context;
             _environment = environment;
+            _emailService = emailService;
         }
         
         
@@ -278,6 +281,7 @@ namespace JwtAuth.Services
         public async Task<DocumentDto?> UploadPortalDocumentAsync(int taxCaseId, IFormFile file, int documentTypeId, Guid portalUserId)
         {
             TaxCase? taxCase = await _context.TaxCases
+                .Include(taxCase => taxCase.Client)
                 .FirstOrDefaultAsync(taxCase =>
                     taxCase.Id == taxCaseId &&
                     taxCase.Client.PortalUserId == portalUserId);
@@ -381,7 +385,13 @@ namespace JwtAuth.Services
                         documentType.DocumentCategory)
                     .FirstOrDefaultAsync(documentType =>
                         documentType.Id == documentTypeId);
-
+            if (documentType is not null)
+            {
+                await _emailService.SendDocumentUploadedAsync(
+                    taxCase.Client.Email,
+                    taxCase.TaxYear,
+                    documentType.Name);
+            }
             return new DocumentDto
             {
                 Id = document.Id,
