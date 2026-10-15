@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { getUserIdFromToken } from "../auth/jwt";
+import { getUserIdFromToken, getUserRoleFromToken } from "../auth/jwt";
 import { login } from "../api/auth";
 
 function LoginPage() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
@@ -14,26 +14,36 @@ function LoginPage() {
     event.preventDefault();
 
     try {
-      const data = await login(username, password);
+      const data = await login(email, password);
 
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
 
       const userId = getUserIdFromToken(data.accessToken);
 
+      const role = getUserRoleFromToken(data.accessToken);
+
+      if (role) {
+        localStorage.setItem("role", role);
+      }
+
       if (userId) {
         localStorage.setItem("userId", userId);
       }
 
-      navigate("/dashboard");
+      if (role === "Admin") {
+        navigate("/dashboard");
+      } else if (role === "Client") {
+        navigate("/client/dashboard");
+      } else {
+        setError("Your account does not have a valid role.");
+      }
 
       //console.log("Login successful");
     } catch (error) {
       console.error("Login error:", error);
       setError(
-        error instanceof Error
-          ? error.message
-          : "Invalid username or password.",
+        error instanceof Error ? error.message : "Invalid email or password.",
       );
     }
   }
@@ -54,17 +64,17 @@ function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label
-              htmlFor="username"
+              htmlFor="email"
               className="mb-2 block text-sm font-medium text-gray-700"
             >
-              Username
+              Email
             </label>
 
             <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
+              id="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               placeholder="Enter your username"
             />

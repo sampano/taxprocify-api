@@ -37,7 +37,7 @@ export async function refreshAccessToken(): Promise<string | null> {
 }
 
 export async function login(
-  username: string,
+  email: string,
   password: string,
 ): Promise<TokenResponse> {
   const response = await fetch(`${API_URL}/Auth/login`, {
@@ -46,7 +46,7 @@ export async function login(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      username,
+      email,
       password,
     }),
   });

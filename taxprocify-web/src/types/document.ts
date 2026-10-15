@@ -8,3 +8,15 @@ export type DocumentCategory = {
   name: string;
   documentTypes: DocumentType[];
 };
+
+export type TaxDocument = {
+  id: number;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  uploadedAt: string;
+  taxCaseId: number;
+  documentTypeId: number | null;
+  documentType: string | null;
+  documentCategory: string | null;
+};

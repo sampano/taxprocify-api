@@ -28,6 +28,7 @@ export async function apiFetch(
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("userId");
+    localStorage.removeItem("role");
 
     return response;
   }
