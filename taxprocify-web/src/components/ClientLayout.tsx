@@ -82,7 +82,7 @@ function ClientLayout() {
                   onClick={() => setNotificationsOpen((current) => !current)}
                   className="relative rounded-lg bg-transparent p-2 text-gray-600 hover:bg-gray-100"
                 >
-                  <Bell size={22} />
+                  <Bell size={15} />
 
                   {unreadCount > 0 && (
                     <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white">

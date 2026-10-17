@@ -12,6 +12,19 @@ namespace JwtAuth.Services
         private readonly AppDbContext _context;
         private readonly IEmailService _emailService;
 
+        private readonly INotificationService _notificationService;
+
+        private static string FormatTaxCaseStatus(TaxCaseStatus status)
+        {
+            return status switch
+            {
+                TaxCaseStatus.WaitingForDocuments => "Waiting for Documents",
+                TaxCaseStatus.InReview => "In Review",
+                TaxCaseStatus.ReadyToFile => "Ready to File",
+                _ => status.ToString()
+            };
+        }
+
         public static readonly Expression<Func<TaxCase, TaxCaseDto>> TaxCaseToDto = taxCase => new TaxCaseDto
         {
             Id = taxCase.Id,
@@ -35,10 +48,12 @@ namespace JwtAuth.Services
                     * 100, 2)
         };
 
-        public TaxCaseService(AppDbContext context, IEmailService emailService)
+        public TaxCaseService(AppDbContext context, IEmailService emailService, INotificationService notificationService)
         {
             _context = context;
             _emailService = emailService;
+            _notificationService = notificationService;
+
         }
 
         public async Task<List<TaxCaseDto>> GetTaxCaseByClientAsync(int clientId, Guid userId)
@@ -153,10 +168,22 @@ namespace JwtAuth.Services
 
             if (oldStatus != taxCase.Status)
             {
+                string formattedStatus = FormatTaxCaseStatus(taxCase.Status);
+
                 await _emailService.SendTaxCaseStatusChangedAsync(
                     taxCase.Client.Email,
                     taxCase.TaxYear,
-                    taxCase.Status.ToString());
+                    formattedStatus);
+
+                if (taxCase.Client.PortalUserId is not null)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        taxCase.Client.PortalUserId.Value,
+                        "Tax case status updated",
+                        $"Your {taxCase.TaxYear} tax case is now {formattedStatus}."
+                    );
+                }
+
             }
 
             return new TaxCaseDto
