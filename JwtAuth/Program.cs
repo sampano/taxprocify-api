@@ -79,6 +79,8 @@ builder.Services.AddTransient<IResend, ResendClient>();
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
 var app = builder.Build();
 
 app.UseCors("ReactFrontend");

@@ -161,5 +161,63 @@ namespace JwtAuth.Services
 
             await _resend.EmailSendAsync(message);
         }
+
+        public async Task SendAllDocumentsCompletedAsync(string email, int taxYear)
+        {
+            var message = new EmailMessage
+            {
+                From = "onboarding@resend.dev",
+                To = email,
+                Subject = $"All documents received for your {taxYear} tax case",
+                HtmlBody = $"""
+            <h2>All requested documents have been received</h2>
+
+            <p>
+                We have received all requested documents for your
+                {taxYear} TaxProcify tax case.
+            </p>
+
+            <p>
+                Your tax professional can now continue reviewing your case.
+            </p>
+
+            <p>
+                You can log in to your TaxProcify client portal
+                to check the current status of your tax case.
+            </p>
+            """
+            };
+
+            await _resend.EmailSendAsync(message);
+        }
+
+        public async Task SendAdminDocumentUploadedAsync(string adminEmail, string clientName, int taxYear, string documentType, string fileName)
+        {
+            var message = new EmailMessage
+            {
+                From = "onboarding@resend.dev",
+                To = adminEmail,
+                Subject = $"{clientName} uploaded a document",
+                HtmlBody = $"""
+            <h2>New client document uploaded</h2>
+
+            <p>
+                {clientName} uploaded a new document
+                for their {taxYear} tax case.
+            </p>
+
+            <p>
+                <strong>Document:</strong> {documentType}<br />
+                <strong>File:</strong> {fileName}
+            </p>
+
+            <p>
+                Log in to TaxProcify to review the uploaded document.
+            </p>
+            """
+            };
+
+            await _resend.EmailSendAsync(message);
+        }
     }
 }

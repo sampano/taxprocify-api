@@ -288,6 +288,38 @@ namespace JwtAuth.Migrations
                         });
                 });
 
+            modelBuilder.Entity("JwtAuth.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("JwtAuth.Entities.TaxCase", b =>
                 {
                     b.Property<int>("Id")
@@ -418,6 +450,17 @@ namespace JwtAuth.Migrations
                     b.Navigation("DocumentCategory");
                 });
 
+            modelBuilder.Entity("JwtAuth.Entities.Notification", b =>
+                {
+                    b.HasOne("JwtAuth.Entities.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("JwtAuth.Entities.TaxCase", b =>
                 {
                     b.HasOne("JwtAuth.Entities.Client", "Client")
@@ -458,6 +501,8 @@ namespace JwtAuth.Migrations
                     b.Navigation("Clients");
 
                     b.Navigation("Documents");
+
+                    b.Navigation("Notifications");
                 });
 #pragma warning restore 612, 618
         }

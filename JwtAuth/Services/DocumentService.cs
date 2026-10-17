@@ -12,15 +12,16 @@ namespace JwtAuth.Services
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _environment;
         private readonly IEmailService _emailService;
-
+        private readonly INotificationService _notificationService;
 
         public DocumentService(
             AppDbContext context,
-            IWebHostEnvironment environment, IEmailService emailService)
+            IWebHostEnvironment environment, IEmailService emailService, INotificationService notificationService)
         {
             _context = context;
             _environment = environment;
             _emailService = emailService;
+            _notificationService = notificationService;
         }
         
         
@@ -282,6 +283,7 @@ namespace JwtAuth.Services
         {
             TaxCase? taxCase = await _context.TaxCases
                 .Include(taxCase => taxCase.Client)
+                .ThenInclude(client => client.User)
                 .FirstOrDefaultAsync(taxCase =>
                     taxCase.Id == taxCaseId &&
                     taxCase.Client.PortalUserId == portalUserId);
@@ -379,18 +381,49 @@ namespace JwtAuth.Services
                 await _context.SaveChangesAsync();
             }
 
+            bool hasDocumentRequests = await _context.DocumentRequests.AnyAsync(request =>
+                request.TaxCaseId == taxCaseId);
+
+            bool hasIncompleteRequests = await _context.DocumentRequests.AnyAsync(request =>
+                    request.TaxCaseId == taxCaseId &&
+                    !request.IsCompleted);
+
+            if (hasDocumentRequests && !hasIncompleteRequests)
+            {
+                await _emailService.SendAllDocumentsCompletedAsync(
+                    taxCase.Client.Email,
+                    taxCase.TaxYear);
+            }
+
+
             DocumentType? documentType =
                 await _context.DocumentTypes
                     .Include(documentType =>
                         documentType.DocumentCategory)
                     .FirstOrDefaultAsync(documentType =>
                         documentType.Id == documentTypeId);
-            if (documentType is not null)
-            {
+
+                if (documentType is not null)
+                {
+                    string clientName = $"{taxCase.Client.FirstName} {taxCase.Client.LastName}";
+
+                await _notificationService.CreateNotificationAsync(
+                    taxCase.Client.UserId,
+                    "New document uploaded",
+                    $"{clientName} uploaded {documentType.Name} for tax year {taxCase.TaxYear}."
+                );
+
                 await _emailService.SendDocumentUploadedAsync(
                     taxCase.Client.Email,
                     taxCase.TaxYear,
                     documentType.Name);
+
+                await _emailService.SendAdminDocumentUploadedAsync(
+                   taxCase.Client.User.Email,
+                   $"{taxCase.Client.FirstName} {taxCase.Client.LastName}",
+                   taxCase.TaxYear,
+                   documentType.Name,
+                   document.FileName);
             }
             return new DocumentDto
             {

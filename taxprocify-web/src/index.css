@@ -1,1 +1,18 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
+body {
+  font-family: "Inter", sans-serif;
+}
+
+button,
+span,
+a,
+p,
+td,
+th,
+label,
+input,
+select,
+textarea {
+  font-size: 14px;
+}

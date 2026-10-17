@@ -10,10 +10,13 @@ namespace JwtAuth.Services
         private readonly AppDbContext _context;
         private readonly IEmailService _emailService;
 
-        public DocumentRequestService(AppDbContext context, IEmailService emailService)
+        private readonly INotificationService _notificationService;
+
+        public DocumentRequestService(AppDbContext context, IEmailService emailService, INotificationService notificationService)
         {
             _context = context;
             _emailService = emailService;
+            _notificationService = notificationService;
         }
 
         public async Task<DocumentRequestDto?> CreateDocumentRequestAsync(
@@ -74,6 +77,15 @@ namespace JwtAuth.Services
                 taxCase.TaxYear,
                 documentType.Name,
                 request.Note);
+
+            if (taxCase.Client.PortalUserId is not null)
+            {
+                await _notificationService.CreateNotificationAsync(
+                    taxCase.Client.PortalUserId.Value,
+                    "New document requested",
+                    $"{documentType.Name} was requested for your {taxCase.TaxYear} tax case."
+                );
+            }
 
             return new DocumentRequestDto
             {

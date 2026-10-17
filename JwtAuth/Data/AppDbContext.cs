@@ -46,6 +46,12 @@ namespace JwtAuth.Data
                 .HasIndex(client => client.PortalUserId)
                 .IsUnique();
 
+            modelBuilder.Entity<Notification>()
+                .HasOne(notification => notification.User)
+                .WithMany(user => user.Notifications)
+                .HasForeignKey(notification => notification.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<DocumentCategory>().HasData(
                 new DocumentCategory
                 {
@@ -161,5 +167,7 @@ namespace JwtAuth.Data
         public DbSet<DocumentType> DocumentTypes { get; set; }
 
         public DbSet<DocumentRequest> DocumentRequests { get; set; }
+
+        public DbSet<Notification> Notifications { get; set; }
     }
 }

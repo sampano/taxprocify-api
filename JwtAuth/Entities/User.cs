@@ -18,5 +18,7 @@
         public List<Client> Clients { get; set; } = [];
 
         public List<Document> Documents { get; set; } = [];
+
+        public List<Notification> Notifications { get; set; } = [];
     }
 }
